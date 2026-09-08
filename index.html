@@ -58,16 +58,8 @@
       </div>
     </div>
 
-    <!-- Revelación del símbolo completado -->
-    <div id="reveal-overlay" class="reveal-overlay" aria-hidden="true">
-      <div class="reveal-content">
-        <div class="reveal-symbol">
-          <div class="reveal-glow"></div>
-        </div>
-        <h2 class="reveal-title">ORIGEN</h2>
-        <p class="reveal-subtitle">ARQUITECTURA Y TIEMPO</p>
-      </div>
-    </div>
+    <!-- Revelación del símbolo completado (sin textos superpuestos) -->
+    <div id="reveal-overlay" class="reveal-overlay" aria-hidden="true"></div>
 
     <!-- Overlay de transición fly-through -->
     <div id="transition-overlay" class="transition-overlay" aria-hidden="true"></div>
@@ -83,15 +75,13 @@
     <!-- HEADER -->
     <header class="site-header" id="site-header" role="banner">
       <div class="header-inner">
-        <div class="header-logo">
-          <div class="logo-mark" id="header-logo-mark" aria-label="Logo ORIGEN">
-            <img src="/images/origen_symbol_assembled.jpg" alt="ORIGEN" class="header-logo-img" />
-          </div>
-          <div class="logo-text-block">
-            <span class="logo-text">ORIGEN</span>
-            <span class="logo-subtext">ESTUDIO DE ARQUITECTURA</span>
-          </div>
-        </div>
+        <a href="#hero" class="header-logo" aria-label="ORIGEN — Estudio de Arquitectura">
+          <img
+            src="/images/origen_header_logo.png"
+            alt="ORIGEN — Estudio de Arquitectura"
+            class="header-logo-img"
+          />
+        </a>
 
         <nav class="header-nav" role="navigation" aria-label="Navegación principal">
           <a href="#hero" class="nav-link">INICIO</a>

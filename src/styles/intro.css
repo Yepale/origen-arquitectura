@@ -45,9 +45,7 @@
   /* Posicionado bajo la base del pedestal 3D restaurado */
   bottom: 22vh;
   left: 50%;
-  /* Desplazamos un poco más a la izquierda (-54%) para contrarrestar
-     el peso óptico y el posible espacio vacío a la izquierda del logo PNG */
-  transform: translateX(-54%);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,13 +54,16 @@
   animation: fadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
   white-space: nowrap;
   z-index: 12;
+  margin: 0;
+  padding: 0;
 }
 
 .intro-brand-logo {
   display: block;
   width: clamp(200px, 28vw, 420px);
   height: auto;
-  /* La imagen ya tiene fondo blanco; mezclamos para que case con el fondo oscuro */
+  margin: 0 auto;
+  /* La imagen ya tiene fondo oscuro; mezclamos para que case con el fondo */
   mix-blend-mode: screen;
   opacity: 0.92;
   /* Sombra suave para integrarlo en la escena */

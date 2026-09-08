@@ -231,16 +231,16 @@ export class InteractionController {
       x: piece.targetPos.x,
       y: piece.targetPos.y,
       z: piece.targetPos.z,
-      duration: 0.36,
+      duration: 0.52,
       ease: 'power2.out',
       onComplete: () => {
-        // Micro-impacto de cantería pesada
+        // Asentamiento sutil y noble de cantería
         gsap.to(piece.group.position, {
-          y: piece.targetPos.y - 0.032,
-          duration: 0.07,
+          y: piece.targetPos.y - 0.016,
+          duration: 0.12,
           yoyo: true,
           repeat: 1,
-          ease: 'power1.inOut'
+          ease: 'sine.inOut'
         });
       }
     });
@@ -249,7 +249,7 @@ export class InteractionController {
       x: piece.targetRot.x,
       y: piece.targetRot.y,
       z: piece.targetRot.z,
-      duration: 0.36,
+      duration: 0.52,
       ease: 'power2.out'
     });
 

@@ -215,55 +215,29 @@ class OrigenApp {
   handleAllLocked() {
     this.state = 'COMPLETE';
 
-    // 1. Ocultar UI de intro sutilmente
+    // 1. Ocultar UI de intro de forma suave
     if (this.dom.introUi) {
       gsap.to(this.dom.introUi, {
         opacity: 0,
-        duration: 0.8,
+        duration: 0.9,
+        ease: 'power2.out',
         pointerEvents: 'none'
       });
     }
 
-    // 2. Transición cinemática de cámara (reencuadre)
+    // 2. Transición cinemática de cámara (reencuadre majestuoso del monolito completo)
     this.cameraRig.focusCompletedSymbol(() => {
-      // 3. Mostrar overlay de revelación de marca con tipografía noble
-      if (this.dom.revealOverlay) {
-        this.dom.revealOverlay.classList.add('active');
-        this.dom.revealOverlay.setAttribute('aria-hidden', 'false');
-
-        // Animación GSAP de entrada del texto
-        gsap.fromTo(
-          '.reveal-title',
-          { opacity: 0, y: 30, letterSpacing: '0.4em' },
-          { opacity: 1, y: 0, letterSpacing: '0.22em', duration: 1.4, ease: 'power2.out' }
-        );
-        gsap.fromTo(
-          '.reveal-subtitle',
-          { opacity: 0, y: 15 },
-          { opacity: 0.9, y: 0, duration: 1.2, delay: 0.5, ease: 'power2.out' }
-        );
-      }
-
-      // 4. Iniciar el vuelo de cámara a través del arco tras contemplar el clímax
+      // 3. Pausa contemplativa limpia (sin textos que tapen la escultura de piedra)
       setTimeout(() => {
         this.startFlyThrough();
-      }, 2600);
+      }, 1400);
     });
   }
 
   startFlyThrough() {
     this.state = 'FLY_THROUGH';
 
-    // Desvanecer el texto de revelación al arrancar el vuelo
-    if (this.dom.revealOverlay) {
-      gsap.to(this.dom.revealOverlay, {
-        opacity: 0,
-        duration: 0.6,
-        ease: 'power1.in'
-      });
-    }
-
-    // Ejecutar vuelo cinemático Three.js a través del orificio del monolito
+    // Ejecutar vuelo cinemático Three.js continuo a través del orificio del monolito
     this.cameraRig.flyThrough(
       // Midpoint: destello blanco / niebla dorada de portal
       () => {

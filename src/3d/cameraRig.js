@@ -49,14 +49,18 @@ export class CameraRig {
   }
 
   update() {
-    if (!this.isParallaxEnabled || this.isTransitioning) {
+    // Si la cámara está en una transición cinemática (GSAP), no sobreescribir su posición
+    if (this.isTransitioning) {
+      return;
+    }
+
+    if (!this.isParallaxEnabled) {
       // Posición fija y centrada con respecto al pedestal
-      this.camera.position.x = this.basePos.x;
-      this.camera.position.y = this.basePos.y;
-      this.camera.position.z = this.basePos.z;
+      this.camera.position.copy(this.basePos);
       this.camera.lookAt(this.currentLookAt);
       return;
     }
+
     this.mouseCurrent.lerp(this.mouseTarget, 0.05);
     this.camera.position.x = this.basePos.x + this.mouseCurrent.x;
     this.camera.position.y = this.basePos.y + this.mouseCurrent.y;
@@ -70,26 +74,38 @@ export class CameraRig {
     this.isParallaxEnabled = false;
     this.isTransitioning   = true;
 
-    const tl = gsap.timeline({ onComplete: () => { if (onComplete) onComplete(); } });
-
-    // Retroceso suave y centrado para contemplar el monolito ensamblado
-    tl.to(this.camera.position, {
-      x: 0, y: 0.85, z: 7.2,
-      duration: 1.8,
-      ease: 'power2.out',
-      onUpdate: () => { this.camera.lookAt(0, 0.35, 0); }
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (onComplete) onComplete();
+      }
     });
+
+    // Elevación suave para contemplar el monolito ensamblado
+    tl.to(this.camera.position, {
+      x: 0,
+      y: 0.70,
+      z: 7.4,
+      duration: 2.0,
+      ease: 'power2.inOut',
+    }, 0);
+
+    // Interpolación continua y suave del punto de mira
+    tl.to(this.currentLookAt, {
+      x: 0,
+      y: 0.10,
+      z: 0,
+      duration: 2.0,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        this.camera.lookAt(this.currentLookAt);
+      }
+    }, 0);
 
     return tl;
   }
 
   /**
-   * Fly-Through — la cámara pasa por el HUECO INFERIOR del logo (arco central)
-   *
-   * El arco que forman las ramas izquierda y derecha bajo la clave tiene su centro en:
-   * x = 0, y ≈ -0.35, z = 0.
-   * La cámara desciende a y = -0.35, apunta al horizonte detrás del arco y vuela
-   * en línea recta a través del orificio hacia el atardecer.
+   * Fly-Through — vuelo cinemático continuo a través del arco central del logo
    */
   flyThrough(onMidpoint, onFinished) {
     this.isParallaxEnabled = false;
@@ -99,44 +115,36 @@ export class CameraRig {
 
     const tl = gsap.timeline();
 
-    // Fase 1: Descenso directo para alinearse con el hueco del arco
+    // Vuelo fluido y continuo sin cambios bruscos de aceleración ni de lookAt
     tl.to(this.camera.position, {
       x: 0,
-      y: -0.15,
-      z: 2.8,
-      duration: 1.1,
+      y: -0.22,
+      z: -7.0,
+      duration: 2.6,
       ease: 'power2.inOut',
-      onUpdate: () => { this.camera.lookAt(0, -0.15, -10); }
+      onUpdate: () => {
+        this.camera.lookAt(this.currentLookAt);
+      }
     }, 0);
 
-    // Fase 2: Cruzar exactamente por el hueco inferior entre los pilares de piedra
-    tl.to(this.camera.position, {
+    tl.to(this.currentLookAt, {
       x: 0,
-      y: -0.15,
-      z: -1.5,
-      duration: 0.85,
-      ease: 'power2.in',
-      onUpdate: () => { this.camera.lookAt(0, -0.15, -15); }
-    }, 1.0);
+      y: -0.22,
+      z: -18.0,
+      duration: 2.6,
+      ease: 'power2.inOut',
+    }, 0);
 
-    // Destello de portal justo al atravesar el umbral de piedra
-    tl.call(() => { if (onMidpoint) onMidpoint(); }, null, 1.45);
+    // Destello de portal al atravesar el arco del monolito (z ≈ 0)
+    tl.call(() => {
+      if (onMidpoint) onMidpoint();
+    }, null, 1.3);
 
-    // Fase 3: Salida triunfal hacia el paisaje de la landing
-    tl.to(this.camera.position, {
-      x: 0,
-      y: -0.15,
-      z: -8.0,
-      duration: 0.6,
-      ease: 'power2.out',
-      onUpdate: () => { this.camera.lookAt(0, -0.15, -20); }
-    }, 1.8);
-
-    // Finalizar transición
+    // Finalizar transición cinemática
     tl.call(() => {
       this.isTransitioning = false;
       if (onFinished) onFinished();
-    }, null, 2.3);
+    }, null, 2.7);
 
     return tl;
   }
