@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="ORIGEN — Estudio de Arquitectura en la Sierra de Albarracín, Teruel. Restauramos, reconstruimos y transformamos arquitectura tradicional incorporando soluciones contemporáneas sin perder su esencia." />
+  <meta name="keywords" content="arquitectura, restauración, Teruel, Albarracín, patrimonio, rehabilitación, piedra" />
+  <meta property="og:title" content="ORIGEN — Arquitectura y Tiempo" />
+  <meta property="og:description" content="Lo antiguo no se reemplaza. Se entiende, se reconstruye y evoluciona." />
+  <title>ORIGEN — Arquitectura y Tiempo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/intro.css" />
+  <link rel="stylesheet" href="/src/styles/landing.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════
+       INTRO EXPERIENCE — PUZZLE 3D
+  ══════════════════════════════════════════════ -->
+  <div id="intro-experience" class="intro-experience">
+
+    <!-- Canvas 3D principal -->
+    <canvas id="main-canvas"></canvas>
+
+    <!-- Interfaz de la intro -->
+    <div id="intro-ui" class="intro-ui">
+      <div class="intro-tagline">
+        <span class="intro-tagline-line">ARQUITECTURA</span>
+        <span class="intro-tagline-divider">·</span>
+        <span class="intro-tagline-line">PATRIMONIO</span>
+        <span class="intro-tagline-divider">·</span>
+        <span class="intro-tagline-line">FUTURO</span>
+      </div>
+
+      <div class="intro-headline">
+        <h1 id="intro-title">CONSTRUYE EL ORIGEN</h1>
+        <p id="intro-subtitle">ARRASTRA LAS PIEZAS PARA CONSTRUIR EL ORIGEN</p>
+      </div>
+
+      <div class="intro-labels">
+        <div class="piece-label piece-label--tierra" id="label-tierra">
+          <span class="label-name">TIERRA</span>
+          <span class="label-desc">RAÍCES · TRADICIÓN</span>
+        </div>
+        <div class="piece-label piece-label--tiempo" id="label-tiempo">
+          <span class="label-name">TIEMPO</span>
+          <span class="label-desc">UNIÓN · EQUILIBRIO</span>
+        </div>
+        <div class="piece-label piece-label--mano" id="label-mano">
+          <span class="label-name">MANO</span>
+          <span class="label-desc">OFICIO · FUTURO</span>
+        </div>
+      </div>
+
+      <div class="intro-progress" id="intro-progress">
+        <div class="progress-item" id="progress-1">
+          <div class="progress-dot"></div>
+          <span>01</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-item" id="progress-2">
+          <div class="progress-dot"></div>
+          <span>02</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-item" id="progress-3">
+          <div class="progress-dot"></div>
+          <span>03</span>
+        </div>
+      </div>
+
+      <div class="intro-bottom">
+        <button id="btn-soundtrack-toggle" class="btn-soundtrack" aria-label="Activar o silenciar música de fondo">
+          <svg class="icon-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <span id="soundtrack-status">MÚSICA</span>
+        </button>
+        <button id="btn-skip" class="btn-skip" aria-label="Explorar directamente sin completar el puzzle">
+          EXPLORAR DIRECTAMENTE
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <p class="intro-hint" id="intro-hint">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 12c0 1.65 1.35 3 3 3s3-1.35 3-3V5c0-1.65-1.35-3-3-3S9 3.35 9 5v7zM5 12c0 3.87 3.13 7 7 7s7-3.13 7-7h-2c0 2.76-2.24 5-5 5s-5-2.24-5-5H5z" fill="currentColor"/>
+          </svg>
+          Arrastra las piezas
+        </p>
+      </div>
+    </div>
+
+    <!-- Revelación del símbolo completado -->
+    <div id="reveal-overlay" class="reveal-overlay" aria-hidden="true">
+      <div class="reveal-content">
+        <div class="reveal-symbol">
+          <div class="reveal-glow"></div>
+        </div>
+        <h2 class="reveal-title">ORIGEN</h2>
+        <p class="reveal-subtitle">ARQUITECTURA Y TIEMPO</p>
+      </div>
+    </div>
+
+    <!-- Overlay de transición fly-through -->
+    <div id="transition-overlay" class="transition-overlay" aria-hidden="true"></div>
+
+  </div><!-- /intro-experience -->
+
+
+  <!-- ══════════════════════════════════════════════
+       LANDING PAGE
+  ══════════════════════════════════════════════ -->
+  <div id="landing-page" class="landing-page" aria-hidden="true">
+
+    <!-- HEADER -->
+    <header class="site-header" id="site-header" role="banner">
+      <div class="header-inner">
+        <div class="header-logo">
+          <div class="logo-mark" id="header-logo-mark" aria-label="Logo ORIGEN">
+            <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M30 4 L10 30 L10 52 L20 60 L20 40 L30 26 L40 40 L40 60 L50 52 L50 30 Z" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+              <path d="M30 26 L30 76" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M22 70 L30 76 L38 70" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M36 56 Q40 54 41 50" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <span class="logo-text">ORIGEN</span>
+        </div>
+
+        <nav class="header-nav" role="navigation" aria-label="Navegación principal">
+          <a href="#proyectos" class="nav-link">PROYECTOS</a>
+          <a href="#filosofia" class="nav-link">FILOSOFÍA</a>
+          <a href="#materiales" class="nav-link">MATERIA</a>
+          <a href="#proceso" class="nav-link">PROCESO</a>
+          <a href="#contacto" class="nav-link">CONTACTO</a>
+        </nav>
+
+        <div class="header-actions">
+          <button id="header-soundtrack-toggle" class="btn-soundtrack-mini" aria-label="Activar o silenciar música">
+            <svg class="icon-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+            <span class="desktop-only">MÚSICA</span>
+          </button>
+          <button id="btn-revive-intro" class="btn-revive" aria-label="Revivir la experiencia de introducción 3D">
+            REVIVIR INTRO 3D
+          </button>
+          <a href="#contacto" class="btn-cta" id="btn-cta-header">EMPIEZA TU PROYECTO</a>
+        </div>
+
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Abrir menú de navegación" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Mobile nav -->
+      <div class="mobile-nav" id="mobile-nav" role="dialog" aria-label="Menú de navegación móvil" aria-hidden="true">
+        <a href="#proyectos" class="mobile-nav-link">PROYECTOS</a>
+        <a href="#filosofia" class="mobile-nav-link">FILOSOFÍA</a>
+        <a href="#materiales" class="mobile-nav-link">MATERIA</a>
+        <a href="#proceso" class="mobile-nav-link">PROCESO</a>
+        <a href="#contacto" class="mobile-nav-link">CONTACTO</a>
+        <a href="#contacto" class="btn-cta mobile-nav-cta">EMPIEZA TU PROYECTO</a>
+      </div>
+    </header>
+
+
+    <!-- HERO -->
+    <section class="hero-section" id="hero" aria-label="Sección principal">
+      <div class="hero-bg">
+        <div class="hero-canvas-container" id="hero-canvas-container">
+          <canvas id="hero-canvas" aria-hidden="true"></canvas>
+        </div>
+        <div class="hero-overlay"></div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          <span class="eyebrow-dot"></span>
+          TERUEL · SIERRA DE ALBARRACÍN · TERRIENTE
+        </div>
+        <h2 class="hero-headline">
+          <span>CONSTRUIMOS</span>
+          <span class="headline-accent">SOBRE LO QUE</span>
+          <span>PERMANECE.</span>
+        </h2>
+        <p class="hero-body">Restauramos, reconstruimos y transformamos arquitectura tradicional<br class="desktop-br" /> incorporando soluciones contemporáneas sin perder su esencia.</p>
+        <div class="hero-actions">
+          <a href="#proyectos" class="btn-primary" id="hero-cta-projects">
+            VER PROYECTOS
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="#filosofia" class="btn-secondary" id="hero-cta-philosophy">NUESTRA FILOSOFÍA</a>
+        </div>
+      </div>
+      <div class="hero-scroll-indicator" aria-hidden="true">
+        <div class="scroll-line"></div>
+        <span>SCROLL</span>
+      </div>
+    </section>
+
+
+    <!-- MATERIAL VIEWER (Visor 3D interactivo del símbolo) -->
+    <section class="viewer-section" id="proceso" aria-label="Visor 3D del símbolo ORIGEN">
+      <div class="viewer-inner">
+        <div class="viewer-canvas-wrap">
+          <canvas id="viewer-canvas" aria-label="Símbolo 3D interactivo de ORIGEN, arrastra para rotar"></canvas>
+          <div class="viewer-hint" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 12c0 1.65 1.35 3 3 3s3-1.35 3-3V5c0-1.65-1.35-3-3-3S9 3.35 9 5v7z" fill="currentColor"/><path d="M5 12c0 3.87 3.13 7 7 7s7-3.13 7-7h-2c0 2.76-2.24 5-5 5s-5-2.24-5-5H5z" fill="currentColor"/></svg>
+            Arrastra para rotar
+          </div>
+        </div>
+        <div class="viewer-controls">
+          <div class="viewer-header">
+            <span class="section-label">EL SÍMBOLO</span>
+            <h2 class="viewer-title">Tres elementos.<br/>Una estructura.</h2>
+            <p class="viewer-desc">El símbolo de ORIGEN nace de la unión de tres dovelas: la materia de la tierra, la permanencia del tiempo y la transformación de la mano.</p>
+          </div>
+          <div class="material-selector" role="group" aria-label="Seleccionar material del símbolo">
+            <p class="selector-label">ACABADO</p>
+            <div class="material-buttons">
+              <button class="material-btn active" data-material="caliza" id="mat-caliza" aria-pressed="true">
+                <div class="material-swatch" style="--swatch-color: #D4C5A9"></div>
+                CALIZA
+              </button>
+              <button class="material-btn" data-material="bronce" id="mat-bronce" aria-pressed="false">
+                <div class="material-swatch" style="--swatch-color: #8B6914"></div>
+                BRONCE
+              </button>
+              <button class="material-btn" data-material="pizarra" id="mat-pizarra" aria-pressed="false">
+                <div class="material-swatch" style="--swatch-color: #4A4A52"></div>
+                PIZARRA
+              </button>
+              <button class="material-btn" data-material="hierro" id="mat-hierro" aria-pressed="false">
+                <div class="material-swatch" style="--swatch-color: #2C2C2C"></div>
+                HIERRO
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- FILOSOFÍA — Tierra / Tiempo / Mano -->
+    <section class="filosofia-section" id="filosofia" aria-label="Filosofía de ORIGEN">
+      <div class="section-container">
+        <div class="filosofia-header">
+          <span class="section-label">FILOSOFÍA</span>
+          <h2 class="filosofia-title">Lo antiguo no se reemplaza.<br/>Se entiende, se reconstruye y evoluciona.</h2>
+        </div>
+        <p class="filosofia-quote">«Trabajamos con la arquitectura existente como punto de partida, combinando técnicas tradicionales, materiales nobles y soluciones contemporáneas.»</p>
+        <div class="filosofia-triad">
+          <article class="triad-card triad-card--tierra" id="triad-tierra" aria-label="Tierra: materia y raíces">
+            <div class="triad-icon">
+              <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <path d="M8 36 Q16 20 24 24 Q32 28 40 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                <path d="M6 38 L42 38" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="24" cy="24" r="3" fill="currentColor" opacity="0.6"/>
+              </svg>
+            </div>
+            <h3 class="triad-name">TIERRA</h3>
+            <p class="triad-sub">La materia.</p>
+            <p class="triad-text">La piedra, la tierra y la cal son los protagonistas. Materiales que han resistido siglos y llevan en su interior la memoria del lugar.</p>
+          </article>
+          <article class="triad-card triad-card--tiempo" id="triad-tiempo" aria-label="Tiempo: permanencia y equilibrio">
+            <div class="triad-icon">
+              <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2"/>
+                <path d="M24 12 L24 24 L32 30" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="triad-name">TIEMPO</h3>
+            <p class="triad-sub">Lo que permanece.</p>
+            <p class="triad-text">La arquitectura que construimos está pensada para durar generaciones. No trabajamos en décadas, pensamos en siglos.</p>
+          </article>
+          <article class="triad-card triad-card--mano" id="triad-mano" aria-label="Mano: oficio y construcción">
+            <div class="triad-icon">
+              <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <path d="M16 36 L16 22 Q16 20 18 20 Q20 20 20 22 L20 16 Q20 14 22 14 Q24 14 24 16 L24 20 Q24 18 26 18 Q28 18 28 20 L28 22 Q28 20 30 20 Q32 20 32 22 L32 32 Q32 38 26 40 L20 40 Q16 40 16 36Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="triad-name">MANO</h3>
+            <p class="triad-sub">Lo que transforma.</p>
+            <p class="triad-text">El oficio artesanal es insustituible. La técnica manual, la precisión constructiva y el conocimiento del material son nuestra diferencia.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- BENTO GRID — Servicios -->
+    <section class="bento-section" id="bento" aria-label="Servicios y áreas de actuación">
+      <div class="section-container">
+        <div class="bento-header">
+          <span class="section-label">ÁREAS DE ACTUACIÓN</span>
+          <h2 class="bento-title">Arquitectura construida<br/>desde el origen.</h2>
+        </div>
+        <div class="bento-grid" role="list">
+          <article class="bento-card bento-large" role="listitem" id="bento-restauracion">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M20 4 L36 14 L36 32 L20 36 L4 32 L4 14 Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M20 4 L20 36" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3"/></svg>
+              </div>
+              <h3>RESTAURACIÓN</h3>
+              <p>Recuperamos edificios históricos con materiales y técnicas originales, preservando la autenticidad sin sacrificar la habitabilidad contemporánea.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-medium" role="listitem" id="bento-rehabilitacion">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="24" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M14 20 L18 24 L26 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3>REHABILITACIÓN</h3>
+              <p>Transformamos estructuras existentes incorporando eficiencia energética, nuevos usos y confort moderno.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-medium" role="listitem" id="bento-patrimonio">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M8 32 L8 16 L20 8 L32 16 L32 32" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 32 L36 32" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="16" y="24" width="8" height="8" stroke="currentColor" stroke-width="1.5"/></svg>
+              </div>
+              <h3>PATRIMONIO</h3>
+              <p>Trabajamos con ayuntamientos y propietarios en la puesta en valor del patrimonio arquitectónico rural.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-small" role="listitem" id="bento-nueva">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M20 6 L34 14 L34 34 L6 34 L6 14 Z" stroke="currentColor" stroke-width="1.8"/><path d="M15 34 L15 24 L25 24 L25 34" stroke="currentColor" stroke-width="1.5"/></svg>
+              </div>
+              <h3>NUEVA ARQ.</h3>
+              <p>Arquitectura de nueva planta integrada en el paisaje.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-small" role="listitem" id="bento-eficiencia">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M20 6 C12 14 10 22 14 28 C16 32 20 34 20 34 C20 34 24 32 26 28 C30 22 28 14 20 6Z" stroke="currentColor" stroke-width="1.8"/><path d="M20 20 L20 30" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <h3>EFICIENCIA</h3>
+              <p>Integración sostenible sin alterar la estética histórica.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-tall" role="listitem" id="bento-concepto">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="12" stroke="currentColor" stroke-width="1.8"/><circle cx="20" cy="20" r="4" fill="currentColor" opacity="0.5"/><path d="M20 4 L20 8M20 32 L20 36M4 20 L8 20M32 20 L36 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <h3>CONCEPTO</h3>
+              <p>Cada proyecto comienza con el análisis profundo del lugar, sus materiales y su historia. El concepto emerge del propio territorio.</p>
+            </div>
+          </article>
+          <article class="bento-card bento-wide" role="listitem" id="bento-materia">
+            <div class="bento-card-inner">
+              <div class="bento-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" fill="none"><path d="M4 28 Q12 20 20 24 Q28 28 36 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M4 32 L36 32" stroke="currentColor" stroke-width="1.2"/></svg>
+              </div>
+              <h3>MATERIA · PIEDRA · MADERA · CAL · HIERRO</h3>
+              <p>Trabajamos con materiales nobles del territorio. La selección de cada material es un acto de arquitectura en sí mismo, una decisión que habla del lugar y del tiempo.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- MATERIALES -->
+    <section class="materiales-section" id="materiales" aria-label="Materiales utilizados en nuestros proyectos">
+      <div class="section-container">
+        <div class="materiales-header">
+          <span class="section-label">MATERIALES NOBLES</span>
+          <h2 class="materiales-title">La materia<br/>es el mensaje.</h2>
+        </div>
+        <div class="materiales-grid">
+          <article class="material-card" id="mat-card-piedra" aria-label="Material: Piedra">
+            <div class="material-card-visual material-visual--piedra">
+              <div class="material-texture"></div>
+            </div>
+            <div class="material-card-info">
+              <h3>PIEDRA</h3>
+              <p>Arenisca, caliza y pizarra de la Sierra de Albarracín. Resistencia, belleza y memoria de siglos.</p>
+              <div class="material-props">
+                <span>Durabilidad: siglos</span>
+                <span>Origen: local</span>
+                <span>Acabado: tallado</span>
+              </div>
+            </div>
+          </article>
+          <article class="material-card" id="mat-card-madera" aria-label="Material: Madera">
+            <div class="material-card-visual material-visual--madera">
+              <div class="material-texture"></div>
+            </div>
+            <div class="material-card-info">
+              <h3>MADERA</h3>
+              <p>Roble y pino de la zona. Estructuras y carpinterías que combinan tradición artesanal con tratamientos contemporáneos.</p>
+              <div class="material-props">
+                <span>Especie: roble · pino</span>
+                <span>Origen: local</span>
+                <span>Tratamiento: natural</span>
+              </div>
+            </div>
+          </article>
+          <article class="material-card" id="mat-card-cal" aria-label="Material: Cal">
+            <div class="material-card-visual material-visual--cal">
+              <div class="material-texture"></div>
+            </div>
+            <div class="material-card-info">
+              <h3>CAL</h3>
+              <p>Mortero de cal hidráulica natural para paramentos. Transpirable, antibacteriana y perfectamente compatible con la piedra histórica.</p>
+              <div class="material-props">
+                <span>Tipo: hidráulica natural</span>
+                <span>Compatibilidad: total</span>
+                <span>Finish: liso · rugoso</span>
+              </div>
+            </div>
+          </article>
+          <article class="material-card" id="mat-card-hierro" aria-label="Material: Hierro">
+            <div class="material-card-visual material-visual--hierro">
+              <div class="material-texture"></div>
+            </div>
+            <div class="material-card-info">
+              <h3>HIERRO</h3>
+              <p>Estructuras y detalles de hierro forjado y acero corten. La modernidad discreta que respeta la piel histórica del edificio.</p>
+              <div class="material-props">
+                <span>Tipo: forjado · corten</span>
+                <span>Acabado: oxidado · negro</span>
+                <span>Uso: estructura · detalle</span>
+              </div>
+            </div>
+          </article>
+          <article class="material-card" id="mat-card-vidrio" aria-label="Material: Vidrio">
+            <div class="material-card-visual material-visual--vidrio">
+              <div class="material-texture"></div>
+            </div>
+            <div class="material-card-info">
+              <h3>VIDRIO</h3>
+              <p>Apertura contemporánea sin disrupción. El vidrio nos permite traer el paisaje al interior manteniendo la integridad de la envolvente histórica.</p>
+              <div class="material-props">
+                <span>Tipo: templado · laminado</span>
+                <span>Rendimiento: alto aislamiento</span>
+                <span>Uso: fachada · cubierta</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- PORTFOLIO -->
+    <section class="portfolio-section" id="proyectos" aria-label="Portfolio de proyectos">
+      <div class="section-container">
+        <div class="portfolio-header">
+          <span class="section-label">PORTFOLIO</span>
+          <h2 class="portfolio-title">Proyectos<br/>materializados.</h2>
+          <div class="portfolio-filters" role="group" aria-label="Filtrar proyectos por tipo">
+            <button class="filter-btn active" data-filter="all" id="filter-all" aria-pressed="true">TODOS</button>
+            <button class="filter-btn" data-filter="restauracion" id="filter-restauracion" aria-pressed="false">RESTAURACIÓN</button>
+            <button class="filter-btn" data-filter="rehabilitacion" id="filter-rehabilitacion" aria-pressed="false">REHABILITACIÓN</button>
+            <button class="filter-btn" data-filter="patrimonio" id="filter-patrimonio" aria-pressed="false">PATRIMONIO</button>
+            <button class="filter-btn" data-filter="nueva" id="filter-nueva" aria-pressed="false">NUEVA ARQ.</button>
+          </div>
+        </div>
+        <div class="portfolio-grid" id="portfolio-grid">
+          <article class="project-card project-large" data-category="restauracion" id="proj-1" aria-label="Proyecto: Casa Cañada de Benatanduz">
+            <div class="project-visual project-visual--1">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">RESTAURACIÓN</span>
+                  <h3 class="proj-name">Casa Cañada de Benatanduz</h3>
+                  <div class="proj-meta">
+                    <span>Benatanduz · Teruel</span>
+                    <span>2023</span>
+                    <span>Piedra · Madera · Cal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="project-card" data-category="rehabilitacion" id="proj-2" aria-label="Proyecto: Pajar de Albarracín">
+            <div class="project-visual project-visual--2">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">REHABILITACIÓN</span>
+                  <h3 class="proj-name">Pajar de Albarracín</h3>
+                  <div class="proj-meta">
+                    <span>Albarracín · Teruel</span>
+                    <span>2022</span>
+                    <span>Piedra · Hierro · Vidrio</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="project-card" data-category="patrimonio" id="proj-3" aria-label="Proyecto: Torre del Reloj Terriente">
+            <div class="project-visual project-visual--3">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">PATRIMONIO</span>
+                  <h3 class="proj-name">Torre del Reloj Terriente</h3>
+                  <div class="proj-meta">
+                    <span>Terriente · Teruel</span>
+                    <span>2024</span>
+                    <span>Piedra · Cal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="project-card" data-category="nueva" id="proj-4" aria-label="Proyecto: Casa en el Llano">
+            <div class="project-visual project-visual--4">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">NUEVA ARQ.</span>
+                  <h3 class="proj-name">Casa en el Llano</h3>
+                  <div class="proj-meta">
+                    <span>Sierra de Albarracín</span>
+                    <span>2024</span>
+                    <span>Piedra · Madera · Hormigón</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="project-card" data-category="restauracion" id="proj-5" aria-label="Proyecto: Masía de Valdecuenca">
+            <div class="project-visual project-visual--5">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">RESTAURACIÓN</span>
+                  <h3 class="proj-name">Masía de Valdecuenca</h3>
+                  <div class="proj-meta">
+                    <span>Valdecuenca · Teruel</span>
+                    <span>2021</span>
+                    <span>Piedra · Cal · Madera</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="project-card" data-category="rehabilitacion" id="proj-6" aria-label="Proyecto: Bodega El Molino">
+            <div class="project-visual project-visual--6">
+              <div class="project-overlay">
+                <div class="project-info">
+                  <span class="proj-type">REHABILITACIÓN</span>
+                  <h3 class="proj-name">Bodega El Molino</h3>
+                  <div class="proj-meta">
+                    <span>Frías de Albarracín</span>
+                    <span>2023</span>
+                    <span>Piedra · Hierro · Vidrio</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- IDENTIDAD & MANIFIESTO VISUAL -->
+    <section class="identity-section" id="identidad" aria-label="Identidad de marca y oficio">
+      <div class="section-container">
+        <div class="identity-header">
+          <span class="section-label">IDENTIDAD · MATERIA · OFICIO</span>
+          <h2 class="identity-title">De la idea al territorio.<br/>La presencia de ORIGEN.</h2>
+          <p class="identity-lead">Cada cuaderno de obra, cada maqueta y cada intervención llevan la impronta de una convicción: preservar y evolucionar la arquitectura de la Sierra de Albarracín.</p>
+        </div>
+
+        <div class="identity-grid">
+          <div class="identity-card identity-card--image">
+            <div class="identity-media-wrap">
+              <img src="/images/identity.png" alt="Papelería corporativa, maquetas y elementos de identidad de ORIGEN" loading="lazy" class="identity-img" />
+            </div>
+            <div class="identity-caption">
+              <span class="caption-tag">IDENTIDAD CORPORATIVA</span>
+              <p>Papelería técnica, libretas de cantería, casco de obra y cuadernos de campo</p>
+            </div>
+          </div>
+
+          <div class="identity-card identity-card--video">
+            <div class="identity-media-wrap">
+              <video class="identity-video" controls playsinline preload="metadata" poster="/images/pedestal-photo.png">
+                <source src="/origen-video.mp4" type="video/mp4" />
+                Tu navegador no soporta reproducción de vídeo.
+              </video>
+            </div>
+            <div class="identity-caption">
+              <span class="caption-tag">VISIÓN ARQUITECTÓNICA</span>
+              <p>El territorio de Terriente y el proceso de intervención material</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- CONTACTO -->
+    <section class="contacto-section" id="contacto" aria-label="Contacto">
+      <div class="contacto-inner">
+        <div class="contacto-text">
+          <span class="section-label">CONTACTO</span>
+          <h2 class="contacto-title">Empieza<br/>tu proyecto.</h2>
+          <p class="contacto-body">Cuéntanos el estado de tu edificio y lo que imaginas. A partir de ahí comenzamos a construir juntos.</p>
+          <div class="contacto-details">
+            <div class="contact-item">
+              <span class="contact-label">ESTUDIO</span>
+              <span>Terriente · Teruel · España</span>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">EMAIL</span>
+              <a href="mailto:hola@origen-arquitectura.es">hola@origen-arquitectura.es</a>
+            </div>
+            <div class="contact-item">
+              <span class="contact-label">TELÉFONO</span>
+              <a href="tel:+34978000000">+34 978 000 000</a>
+            </div>
+          </div>
+        </div>
+        <form class="contacto-form" id="contacto-form" aria-label="Formulario de contacto" novalidate>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="contact-name">NOMBRE</label>
+              <input type="text" id="contact-name" name="name" placeholder="Tu nombre" autocomplete="name" required />
+            </div>
+            <div class="form-field">
+              <label for="contact-email">EMAIL</label>
+              <input type="email" id="contact-email" name="email" placeholder="tu@email.com" autocomplete="email" required />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="contact-subject">TIPO DE PROYECTO</label>
+            <select id="contact-subject" name="subject" required>
+              <option value="" disabled selected>Selecciona</option>
+              <option value="restauracion">Restauración</option>
+              <option value="rehabilitacion">Rehabilitación</option>
+              <option value="patrimonio">Patrimonio</option>
+              <option value="nueva">Nueva Arquitectura</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="contact-message">MENSAJE</label>
+            <textarea id="contact-message" name="message" placeholder="Cuéntanos tu proyecto..." rows="5" required></textarea>
+          </div>
+          <button type="submit" class="btn-submit" id="btn-submit-form">
+            ENVIAR MENSAJE
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M3 9h12M11 5l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+
+    <!-- FOOTER -->
+    <footer class="site-footer" role="contentinfo">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="logo-mark" aria-hidden="true">
+              <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30 4 L10 30 L10 52 L20 60 L20 40 L30 26 L40 40 L40 60 L50 52 L50 30 Z" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+                <path d="M30 26 L30 76" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M22 70 L30 76 L38 70" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M36 56 Q40 54 41 50" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+            <div>
+              <span class="logo-text">ORIGEN</span>
+              <span class="footer-tagline">ARQUITECTURA Y TIEMPO</span>
+            </div>
+          </div>
+          <p>Teruel · Sierra de Albarracín · Terriente</p>
+        </div>
+        <nav class="footer-nav" aria-label="Navegación del pie de página">
+          <a href="#proyectos">Proyectos</a>
+          <a href="#filosofia">Filosofía</a>
+          <a href="#materiales">Materia</a>
+          <a href="#contacto">Contacto</a>
+        </nav>
+        <div class="footer-copy">
+          <p>&copy; 2024 ORIGEN Estudio de Arquitectura</p>
+          <p>Lo antiguo no se reemplaza. Se entiende, se reconstruye y evoluciona.</p>
+        </div>
+      </div>
+    </footer>
+
+  </div><!-- /landing-page -->
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+=====================================================
+CARPETA PARA MODELOS 3D DE ORIGEN
+=====================================================
+
+Sube aquí tus archivos 3D (.glb, .gltf, .obj, .fbx).
+
+Nombres recomendados si los tienes separados por piezas:
+  - tierra.glb     (o tierra.gltf / tierra.obj)
+  - tiempo.glb     (o tiempo.gltf / tiempo.obj)
+  - mano.glb       (o mano.gltf / mano.obj)
+
+O si tienes el símbolo completo o pedestal:
+  - origen.glb
+  - pedestal.glb
+
+En cuanto los copies aquí, avísame y los integraré automáticamente
+en la escena 3D de la intro y en el visor de la web.

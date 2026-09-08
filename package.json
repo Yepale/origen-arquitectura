@@ -1,0 +1,19 @@
+{
+  "name": "origen-arquitectura",
+  "version": "1.0.0",
+  "description": "ORIGEN — Estudio de Arquitectura · Experiencia 3D Interactiva",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.169.0",
+    "gsap": "^3.12.5"
+  },
+  "devDependencies": {
+    "vite": "^5.4.2"
+  }
+}
