@@ -17,6 +17,7 @@ export class SceneManager {
     this.clock = new THREE.Clock();
     this.animationCallbacks = [];
     this.isDisposed = false;
+    this.pedestalGroup = null; // Referencia para rotación solo en Y
 
     this.init();
   }
@@ -212,6 +213,12 @@ export class SceneManager {
 
     this.updateParticles();
 
+    // Rotación suave del pedestal solo sobre el eje Y (sin tambalear)
+    if (this.pedestalGroup && this.pedestalGroup.userData.autoRotateY) {
+      this.pedestalGroup.rotation.y += 0.0018;
+    }
+
+    // Ejecutar callbacks registrados (físicas, imán, cámara)
     for (let i = 0; i < this.animationCallbacks.length; i++) {
       this.animationCallbacks[i](delta, elapsedTime);
     }

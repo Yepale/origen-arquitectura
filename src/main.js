@@ -58,6 +58,9 @@ class OrigenApp {
     // 2. Construir geometrías y materiales de las piezas pétreas
     this.piecesData = buildStonePieces(this.sceneManager.scene);
 
+    // Conectar pedestalGroup al sceneManager para rotación solo en Y
+    this.sceneManager.pedestalGroup = this.piecesData.pedestalGroup;
+
     // 3. Inicializar Camera Rig
     this.cameraRig = new CameraRig(this.sceneManager.camera, this.dom.mainCanvas);
 
@@ -91,13 +94,16 @@ class OrigenApp {
     const toggleSoundtrack = () => {
       stoneAudio.resume();
       const isMuted = stoneAudio.toggleMute();
-      const introBtn = document.getElementById('btn-soundtrack-toggle');
-      const headerBtn = document.getElementById('header-soundtrack-toggle');
-      const statusText = document.getElementById('soundtrack-status');
 
-      if (introBtn) introBtn.classList.toggle('muted', isMuted);
-      if (headerBtn) headerBtn.classList.toggle('muted', isMuted);
-      if (statusText) statusText.textContent = isMuted ? 'MÚSICA: OFF' : 'MÚSICA: ON';
+      // Actualizar todos los botones de soundtrack (intro + header)
+      document.querySelectorAll('.btn-soundtrack').forEach(btn => {
+        const iconOn  = btn.querySelector('.icon-sound-on');
+        const iconOff = btn.querySelector('.icon-sound-off');
+        btn.classList.toggle('muted', isMuted);
+        btn.setAttribute('aria-pressed', isMuted.toString());
+        if (iconOn)  iconOn.style.display  = isMuted ? 'none'         : '';
+        if (iconOff) iconOff.style.display = isMuted ? ''             : 'none';
+      });
     };
 
     const introMusicBtn = document.getElementById('btn-soundtrack-toggle');
@@ -106,7 +112,8 @@ class OrigenApp {
     const headerMusicBtn = document.getElementById('header-soundtrack-toggle');
     if (headerMusicBtn) headerMusicBtn.addEventListener('click', toggleSoundtrack);
 
-    // Botón "Explorar directamente" (accesibilidad / saltar puzzle)
+    // btn-skip eliminado del UI — el símbolo se completa arrastrando las piezas
+    // En móvil: toque largo en canvas dispara autoComplete como accesibilidad
     if (this.dom.btnSkip) {
       this.dom.btnSkip.addEventListener('click', () => {
         stoneAudio.resume();

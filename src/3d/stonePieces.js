@@ -3,93 +3,66 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
  * ORIGEN — Stone Pieces & Models Integration
- * Materiales PBR fieles al logo original:
- *   TIERRA  → arenisca naranja cálida agrietada  (#D08040)
- *   TIEMPO  → caliza crema pálida mineral         (#C4B080)
- *   MANO    → pizarra gris antracita              (#808890)
  *
- * Sin ghost markers amarillos ni anillo guía visible.
+ * Materiales PBR exactos del logo original:
+ *   TIERRA  → arenisca naranja terracota  #C87040
+ *   TIEMPO  → caliza crema muy pálida     #C0A878
+ *   MANO    → pizarra gris antracita      #78828E
+ *
+ * Carga coordinada: las piezas procedurales se mantienen INVISIBLES
+ * hasta que los GLB estén listos. El pedestal solo gira en Y.
  */
 
-// ── Generador procedural de textura mineral ──────────────────────────────────
-function createStoneTexture(type = 'caliza') {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
+// ── Generador de textura mineral procedural ──────────────────────────────────
+function createStoneTexture(type) {
+  const size = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
 
-  // Paleta exacta del logo
-  const palette = {
-    tierra: { r: 200, g: 118, b: 58, amp: 32 },  // Arenisca naranja cálida
-    tiempo: { r: 196, g: 176, b: 122, amp: 20 },  // Caliza crema/beige
-    mano:   { r: 118, g: 124, b: 136, amp: 26 },  // Pizarra gris antracita
+  // Paleta EXACTA del logo renderizado
+  const palettes = {
+    tierra: { r: 192, g: 104, b:  52, amp: 30, cracks: true  },
+    tiempo: { r: 186, g: 162, b: 112, amp: 18, cracks: false },
+    mano:   { r: 108, g: 118, b: 130, amp: 22, cracks: false },
   };
+  const p = palettes[type] || palettes.tiempo;
 
-  const p = palette[type] || { r: 50, g: 50, b: 54, amp: 20 };
+  const img = ctx.createImageData(size, size);
+  const d = img.data;
 
-  const imgData = ctx.createImageData(512, 512);
-  const data = imgData.data;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      // Ruido multicapa orgánico: macro veta + micro granulado
+      const a = Math.sin(x * 0.038 + y * 0.022 + 0.5) * Math.cos(y * 0.041 - x * 0.013);
+      const b2 = Math.sin(x * 0.098 + y * 0.075) * 0.55;
+      const n  = (Math.random() - 0.5) * 2 * 0.35;
+      const v = (a * 0.45 + b2 * 0.25 + n * 0.3) * p.amp;
 
-  for (let y = 0; y < 512; y++) {
-    for (let x = 0; x < 512; x++) {
-      const idx = (y * 512 + x) * 4;
-      // Ruido orgánico multicapa (simula vetas y grietas de piedra)
-      const n1 = Math.sin(x * 0.04 + y * 0.02) * Math.cos(y * 0.05 - x * 0.01);
-      const n2 = Math.sin(x * 0.11 + y * 0.09) * 0.6;
-      const n3 = (Math.random() - 0.5) * 2 * 0.4;
-      const val = (n1 * 0.45 + n2 * 0.25 + n3 * 0.3) * p.amp;
-
-      data[idx]     = Math.min(255, Math.max(0, p.r + val));
-      data[idx + 1] = Math.min(255, Math.max(0, p.g + val * 0.88));
-      data[idx + 2] = Math.min(255, Math.max(0, p.b + val * 0.75));
-      data[idx + 3] = 255;
+      d[i]   = Math.min(255, Math.max(0, p.r + v));
+      d[i+1] = Math.min(255, Math.max(0, p.g + v * 0.87));
+      d[i+2] = Math.min(255, Math.max(0, p.b + v * 0.72));
+      d[i+3] = 255;
     }
   }
+  ctx.putImageData(img, 0, 0);
 
-  ctx.putImageData(imgData, 0, 0);
-
-  // Para MANO: añadir silueta de palma grabada en la piedra
-  if (type === 'mano') {
+  // Grietas de arenisca para TIERRA
+  if (p.cracks) {
     ctx.save();
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(50, 54, 62, 0.55)';
-    ctx.filter = 'blur(5px)';
-
-    // Palma
-    ctx.beginPath();
-    ctx.ellipse(256, 295, 52, 68, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 5 dedos
-    const fingers = [
-      { x: 192, y: 228, rX: 13, rY: 36, rot: -0.38 },
-      { x: 218, y: 172, rX: 12, rY: 50, rot: -0.14 },
-      { x: 256, y: 148, rX: 13, rY: 56, rot:  0.0  },
-      { x: 292, y: 172, rX: 12, rY: 48, rot:  0.14 },
-      { x: 322, y: 212, rX: 11, rY: 37, rot:  0.34 },
+    ctx.strokeStyle = 'rgba(120, 60, 15, 0.45)';
+    ctx.lineWidth = 1.8;
+    ctx.filter = 'blur(0.8px)';
+    const lines = [
+      [[70, 20], [160, 180], [230, 330]],
+      [[310, 8],  [275, 160], [320, 295]],
+      [[130, 390],[215, 465], [295, 510]],
+      [[55, 255], [140, 305], [195, 415]],
+      [[400, 180],[360, 290], [400, 420]],
     ];
-    fingers.forEach(f => {
-      ctx.beginPath();
-      ctx.ellipse(f.x, f.y, f.rX, f.rY, f.rot, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.restore();
-  }
-
-  // Para TIERRA: grietas diagonales que simulan arenisca
-  if (type === 'tierra') {
-    ctx.save();
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.strokeStyle = 'rgba(140, 70, 20, 0.4)';
-    ctx.lineWidth = 1.5;
-    ctx.filter = 'blur(1px)';
-    const crackLines = [
-      [[80, 30], [180, 200], [240, 340]],
-      [[320, 10], [290, 150], [330, 280]],
-      [[140, 400], [220, 480], [300, 510]],
-      [[60, 260], [150, 310], [200, 420]],
-    ];
-    crackLines.forEach(pts => {
+    lines.forEach(pts => {
       ctx.beginPath();
       ctx.moveTo(pts[0][0], pts[0][1]);
       pts.slice(1).forEach(pt => ctx.lineTo(pt[0], pt[1]));
@@ -98,191 +71,154 @@ function createStoneTexture(type = 'caliza') {
     ctx.restore();
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  return texture;
+  // Mano grabada en relieve para MANO (pizarra)
+  if (type === 'mano') {
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(45, 50, 58, 0.52)';
+    ctx.filter = 'blur(4px)';
+    // Palma
+    ctx.beginPath();
+    ctx.ellipse(256, 298, 50, 66, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Dedos
+    [
+      { x: 192, y: 228, rx: 13, ry: 36, r: -0.38 },
+      { x: 218, y: 172, rx: 12, ry: 50, r: -0.14 },
+      { x: 256, y: 148, rx: 13, ry: 56, r:  0.0  },
+      { x: 292, y: 172, rx: 12, ry: 48, r:  0.14 },
+      { x: 322, y: 212, rx: 11, ry: 37, r:  0.34 },
+    ].forEach(f => {
+      ctx.beginPath();
+      ctx.ellipse(f.x, f.y, f.rx, f.ry, f.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
 }
 
 function createBumpTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  const imgData = ctx.createImageData(256, 256);
-  for (let i = 0; i < imgData.data.length; i += 4) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(256, 256);
+  for (let i = 0; i < img.data.length; i += 4) {
     const v = Math.floor(Math.random() * 255);
-    imgData.data[i] = v;
-    imgData.data[i + 1] = v;
-    imgData.data[i + 2] = v;
-    imgData.data[i + 3] = 255;
+    img.data[i] = img.data[i+1] = img.data[i+2] = v;
+    img.data[i+3] = 255;
   }
-  ctx.putImageData(imgData, 0, 0);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  return texture;
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
 }
 
-// ── Materiales PBR fieles al logo ────────────────────────────────────────────
+// ── Materiales PBR — colores exactos del logo ────────────────────────────────
 export function createStoneMaterials() {
   const bump = createBumpTexture();
 
   return {
-    // TIERRA — arenisca naranja cálida, rugosa, agrietada
+    // TIERRA — arenisca naranja terracota agrietada
     tierra: new THREE.MeshStandardMaterial({
-      color: 0xd08040,
-      map: createStoneTexture('tierra'),
-      bumpMap: bump,
-      bumpScale: 0.06,
-      roughness: 0.90,
+      color:    0xc87040,
+      map:      createStoneTexture('tierra'),
+      bumpMap:  bump,
+      bumpScale: 0.065,
+      roughness: 0.91,
       metalness: 0.02,
-      envMapIntensity: 0.3,
     }),
-
-    // TIEMPO — caliza crema/beige mineral, más suave
+    // TIEMPO — caliza crema pálida mineral
     tiempo: new THREE.MeshStandardMaterial({
-      color: 0xc4b080,
-      map: createStoneTexture('tiempo'),
-      bumpMap: bump,
+      color:    0xc0a878,
+      map:      createStoneTexture('tiempo'),
+      bumpMap:  bump,
       bumpScale: 0.04,
-      roughness: 0.85,
+      roughness: 0.87,
       metalness: 0.03,
-      envMapIntensity: 0.3,
     }),
-
-    // MANO — pizarra gris antracita, más densa y fría
+    // MANO — pizarra gris antracita con mano grabada
     mano: new THREE.MeshStandardMaterial({
-      color: 0x808890,
-      map: createStoneTexture('mano'),
-      bumpMap: bump,
+      color:    0x78828e,
+      map:      createStoneTexture('mano'),
+      bumpMap:  bump,
       bumpScale: 0.055,
-      roughness: 0.88,
-      metalness: 0.05,
-      envMapIntensity: 0.25,
+      roughness: 0.89,
+      metalness: 0.04,
     }),
-
-    // Bronce para el pedestal si se necesita
     bronce: new THREE.MeshStandardMaterial({
-      color: 0x9a7232,
-      roughness: 0.5,
-      metalness: 0.7,
+      color: 0x9a7232, roughness: 0.5, metalness: 0.7,
     }),
-
-    // Ghost invisible — se crea pero con opacity 0 para lógica de snap
-    // NO se muestra visualmente en escena
-    targetGhost: new THREE.MeshStandardMaterial({
-      color: 0xb59868,
-      transparent: true,
-      opacity: 0.0,   // ← completamente invisible
-      depthWrite: false,
+    // Ghosts siempre invisibles
+    targetGhost: new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0, depthWrite: false,
     }),
-
-    // Glow dorado para confirmación de encaje
     goldGlow: new THREE.MeshBasicMaterial({
-      color: 0xffd060,
-      transparent: true,
-      opacity: 0.0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
+      color: 0xffd060, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false,
     }),
   };
 }
 
-// ── Geometrías procedurales de respaldo (si falla GLB) ───────────────────────
-function createTierraGeometry() {
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.15, -1.8);
-  shape.lineTo(-0.85, -1.8);
-  shape.lineTo(-0.85, -0.4);
-  shape.lineTo(-1.6, 1.3);
-  shape.lineTo(-0.8, 1.7);
-  shape.lineTo(-0.15, 0.3);
-  shape.closePath();
-  const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.6, bevelEnabled: true, bevelSegments: 4,
-    steps: 1, bevelSize: 0.06, bevelThickness: 0.06
-  });
-  geom.center();
-  return geom;
+// ── Geometrías procedurales de respaldo ─────────────────────────────────────
+function extrudeShape(pts, cfg = {}) {
+  const s = new THREE.Shape();
+  s.moveTo(pts[0][0], pts[0][1]);
+  pts.slice(1).forEach(p => s.lineTo(p[0], p[1]));
+  s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.6, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.06, bevelThickness: 0.06, ...cfg });
+  g.center();
+  return g;
 }
 
-function createTiempoGeometry() {
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.9, 0.85);
-  shape.lineTo(-0.35, 1.85);
-  shape.lineTo(0.35, 1.85);
-  shape.lineTo(0.9, 0.85);
-  shape.lineTo(0.4, 0.45);
-  shape.lineTo(0.0, 0.95);
-  shape.lineTo(-0.4, 0.45);
-  shape.closePath();
-  const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.64, bevelEnabled: true, bevelSegments: 4,
-    steps: 1, bevelSize: 0.065, bevelThickness: 0.065
-  });
-  geom.center();
-  return geom;
+function geomTierra() {
+  return extrudeShape([[-0.15,-1.8],[-0.85,-1.8],[-0.85,-0.4],[-1.6,1.3],[-0.8,1.7],[-0.15,0.3]]);
+}
+function geomTiempo() {
+  return extrudeShape([[-0.9,0.85],[-0.35,1.85],[0.35,1.85],[0.9,0.85],[0.4,0.45],[0.0,0.95],[-0.4,0.45]], { depth: 0.64 });
+}
+function geomMano() {
+  return extrudeShape([[0.15,-1.8],[0.85,-1.8],[0.85,-0.4],[1.6,1.3],[0.8,1.7],[0.15,0.3]]);
 }
 
-function createManoGeometry() {
-  const shape = new THREE.Shape();
-  shape.moveTo(0.15, -1.8);
-  shape.lineTo(0.85, -1.8);
-  shape.lineTo(0.85, -0.4);
-  shape.lineTo(1.6, 1.3);
-  shape.lineTo(0.8, 1.7);
-  shape.lineTo(0.15, 0.3);
-  shape.closePath();
-  const geom = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.6, bevelEnabled: true, bevelSegments: 4,
-    steps: 1, bevelSize: 0.06, bevelThickness: 0.06
-  });
-  geom.center();
-  return geom;
-}
-
-// ── Constructor principal de piezas ──────────────────────────────────────────
+// ── Builder principal ────────────────────────────────────────────────────────
 export function buildStonePieces(scene) {
   const materials = createStoneMaterials();
 
-  // Posiciones objetivo del símbolo ensamblado
   const targets = {
-    tierra: { pos: new THREE.Vector3(-0.55, 0.0, 0.0), rot: new THREE.Euler(0, 0, 0) },
-    tiempo: { pos: new THREE.Vector3(0.0, 1.25, 0.0),  rot: new THREE.Euler(0, 0, 0) },
-    mano:   { pos: new THREE.Vector3(0.55, 0.0, 0.0),  rot: new THREE.Euler(0, 0, 0) },
+    tierra: { pos: new THREE.Vector3(-0.55, 0.0, 0.0), rot: new THREE.Euler(0,0,0) },
+    tiempo: { pos: new THREE.Vector3(0.0,  1.25, 0.0), rot: new THREE.Euler(0,0,0) },
+    mano:   { pos: new THREE.Vector3(0.55, 0.0,  0.0), rot: new THREE.Euler(0,0,0) },
   };
 
-  // Posiciones de reposo inicial — triángulo espaciado para facilitar el arrastre
   const initials = {
-    tierra: { pos: new THREE.Vector3(-2.6, 0.65, 0.35),  rot: new THREE.Euler(0.08,  0.22, -0.06) },
-    tiempo: { pos: new THREE.Vector3(0.0,  2.35, -0.2),  rot: new THREE.Euler(-0.14, 0.0,   0.0) },
-    mano:   { pos: new THREE.Vector3(2.6,  0.65, 0.35),  rot: new THREE.Euler(0.08, -0.22,  0.06) },
+    tierra: { pos: new THREE.Vector3(-2.6,  0.65, 0.35), rot: new THREE.Euler(0.08,  0.22,-0.06) },
+    tiempo: { pos: new THREE.Vector3( 0.0,  2.35,-0.2 ), rot: new THREE.Euler(-0.14, 0.0,  0.0 ) },
+    mano:   { pos: new THREE.Vector3( 2.6,  0.65, 0.35), rot: new THREE.Euler(0.08, -0.22, 0.06) },
   };
 
   const symbolGroup = new THREE.Group();
   symbolGroup.name = 'symbolGroup';
+  // Oculto hasta que el GLB cargue
+  symbolGroup.visible = false;
   scene.add(symbolGroup);
-
-  const geomTierra = createTierraGeometry();
-  const geomTiempo = createTiempoGeometry();
-  const geomMano   = createManoGeometry();
 
   function makePiece(name, geom, mat, initial, target) {
     const group = new THREE.Group();
     group.name = `piece_${name}`;
 
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.castShadow    = true;
-    mesh.receiveShadow = true;
+    mesh.castShadow = mesh.receiveShadow = true;
     mesh.name = `mesh_${name}`;
     mesh.userData = { pieceName: name };
     group.add(mesh);
 
-    // Glow de confirmación (invisible hasta encaje)
-    const glowGeom = geom.clone();
-    glowGeom.scale(1.04, 1.04, 1.04);
-    const glowMesh = new THREE.Mesh(glowGeom, materials.goldGlow.clone());
+    const glowG = geom.clone();
+    glowG.scale(1.04, 1.04, 1.04);
+    const glowMesh = new THREE.Mesh(glowG, materials.goldGlow.clone());
     glowMesh.visible = false;
     group.add(glowMesh);
 
@@ -290,83 +226,101 @@ export function buildStonePieces(scene) {
     group.rotation.copy(initial.rot);
     symbolGroup.add(group);
 
-    // Ghost completamente invisible — sólo para lógica de snap, no se dibuja
+    // Ghost invisible
     const ghost = new THREE.Mesh(geom, materials.targetGhost.clone());
     ghost.position.copy(target.pos);
     ghost.rotation.copy(target.rot);
     ghost.name = `ghost_${name}`;
-    ghost.visible = false; // ← oculto
+    ghost.visible = false;
     symbolGroup.add(ghost);
 
     return {
-      name,
-      group,
-      mesh,
-      glowMesh,
-      ghost,
+      name, group, mesh, glowMesh, ghost,
       initialPos: initial.pos.clone(),
       initialRot: initial.rot.clone(),
       targetPos:  target.pos.clone(),
       targetRot:  target.rot.clone(),
-      isLocked:   false,
-      isDragging: false,
-      velocity:   new THREE.Vector3(),
+      isLocked: false, isDragging: false,
+      velocity: new THREE.Vector3(),
       dragOffset: new THREE.Vector3(),
       idleFloatOffset: Math.random() * Math.PI * 2,
     };
   }
 
   const pieces = {
-    tierra: makePiece('tierra', geomTierra, materials.tierra, initials.tierra, targets.tierra),
-    tiempo: makePiece('tiempo', geomTiempo, materials.tiempo, initials.tiempo, targets.tiempo),
-    mano:   makePiece('mano',   geomMano,   materials.mano,   initials.mano,   targets.mano),
+    tierra: makePiece('tierra', geomTierra(), materials.tierra, initials.tierra, targets.tierra),
+    tiempo: makePiece('tiempo', geomTiempo(), materials.tiempo, initials.tiempo, targets.tiempo),
+    mano:   makePiece('mano',   geomMano(),   materials.mano,   initials.mano,   targets.mano),
   };
 
   // ── Pedestal ────────────────────────────────────────────────────────────────
   const pedestalGroup = new THREE.Group();
   pedestalGroup.name = 'pedestal';
+  // También oculto hasta carga
+  pedestalGroup.visible = false;
   scene.add(pedestalGroup);
 
-  // Sin anillo guía visible — escena limpia
-  // (el anillo amarillo se elimina completamente)
+  // Rotación solo en Y — sin tambalear
+  // Se gestiona desde el bucle de animación del SceneManager
+  pedestalGroup.userData.autoRotateY = true;
 
   const loader = new GLTFLoader();
+  let glbCount = 0; // cuántos GLB han cargado
 
-  loader.load(
-    '/models/pedestal.glb',
+  const onGlbReady = () => {
+    glbCount++;
+    // Mostrar toda la escena cuando AMBOS GLB estén listos
+    if (glbCount >= 2) {
+      symbolGroup.visible = true;
+      pedestalGroup.visible = true;
+      // Fade-in suave vía opacity del material del renderer (CSS en canvas)
+      const canvas = document.getElementById('main-canvas');
+      if (canvas) {
+        canvas.style.opacity = '0';
+        canvas.style.transition = 'opacity 0.8s ease';
+        // Forzar reflow y animar
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            canvas.style.opacity = '1';
+          });
+        });
+      }
+    }
+  };
+
+  loader.load('/models/pedestal.glb',
     (gltf) => {
       const model = gltf.scene;
-      model.traverse((child) => {
+      model.traverse(child => {
         if (child.isMesh) {
-          child.castShadow    = true;
-          child.receiveShadow = true;
+          child.castShadow = child.receiveShadow = true;
         }
       });
       model.scale.set(4.8, 4.8, 4.8);
       model.position.set(0, -3.48, 0);
       pedestalGroup.add(model);
+      onGlbReady();
     },
     undefined,
     (err) => {
-      console.warn('Fallback pedestal activo:', err);
-      const pedGeom = new THREE.CylinderGeometry(3.6, 4.0, 0.4, 48);
-      const pedMat  = new THREE.MeshStandardMaterial({ color: 0x282420, roughness: 0.94 });
-      const ped     = new THREE.Mesh(pedGeom, pedMat);
+      console.warn('Fallback pedestal:', err);
+      const ped = new THREE.Mesh(
+        new THREE.CylinderGeometry(3.6, 4.0, 0.4, 48),
+        new THREE.MeshStandardMaterial({ color: 0x282420, roughness: 0.94 })
+      );
       ped.position.y = -2.0;
       pedestalGroup.add(ped);
+      onGlbReady(); // Contar también el fallback
     }
   );
 
-  // ── Modelos GLB — piezas escultóricas (rocky_y.glb) ─────────────────────────
-  loader.load(
-    '/models/rocky_y.glb',
+  loader.load('/models/rocky_y.glb',
     (gltf) => {
       const partsMap = {};
-      gltf.scene.traverse((child) => {
+      gltf.scene.traverse(child => {
         if (child.name) partsMap[child.name] = child;
         if (child.isMesh) {
-          child.castShadow    = true;
-          child.receiveShadow = true;
+          child.castShadow = child.receiveShadow = true;
           if (child.parent && child.parent.name) {
             partsMap[child.parent.name] = child;
           }
@@ -375,7 +329,7 @@ export function buildStonePieces(scene) {
 
       const SCALE = 3.4;
 
-      // TIERRA — arenisca naranja (rama izquierda del logo)
+      // TIERRA — arenisca naranja (rama izquierda)
       if (partsMap['tripo_part_1']) {
         const m = partsMap['tripo_part_1'];
         m.material = materials.tierra;
@@ -387,7 +341,7 @@ export function buildStonePieces(scene) {
         pieces.tierra.group.add(m);
       }
 
-      // TIEMPO — caliza crema (clave central del logo)
+      // TIEMPO — caliza crema (clave central)
       if (partsMap['tripo_part_2']) {
         const m = partsMap['tripo_part_2'];
         m.material = materials.tiempo;
@@ -399,30 +353,32 @@ export function buildStonePieces(scene) {
         pieces.tiempo.group.add(m);
       }
 
-      // MANO — pizarra gris (rama derecha del logo, con mano grabada)
-      const manoParts = ['tripo_part_0', 'tripo_part_3', 'tripo_part_5']
-        .map(n => partsMap[n])
-        .filter(Boolean);
+      // MANO — pizarra gris (rama derecha)
+      const manoParts = ['tripo_part_0','tripo_part_3','tripo_part_5']
+        .map(n => partsMap[n]).filter(Boolean);
 
       if (manoParts.length > 0) {
-        const manoGroup = new THREE.Group();
-        manoGroup.name = 'mesh_mano_group';
-        manoGroup.userData = { pieceName: 'mano' };
+        const mg = new THREE.Group();
+        mg.name = 'mesh_mano_group';
+        mg.userData = { pieceName: 'mano' };
         manoParts.forEach(m => {
           m.material = materials.mano;
           m.scale.set(SCALE, SCALE, SCALE);
           m.position.set(-0.55, -1.65, 0);
           m.userData = { pieceName: 'mano' };
-          manoGroup.add(m);
+          mg.add(m);
         });
         pieces.mano.group.remove(pieces.mano.mesh);
-        pieces.mano.mesh = manoGroup;
-        pieces.mano.group.add(manoGroup);
+        pieces.mano.mesh = mg;
+        pieces.mano.group.add(mg);
       }
+
+      onGlbReady();
     },
     undefined,
     (err) => {
-      console.warn('Piezas procedimentales activas:', err);
+      console.warn('Piezas procedurales activas:', err);
+      onGlbReady(); // Mostrar igual con fallback
     }
   );
 

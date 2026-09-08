@@ -23,6 +23,8 @@
   height: 100% !important;
   display: block;
   touch-action: none;
+  /* La transición de opacidad da el fade-in suave de carga */
+  transition: opacity 0.8s ease;
 }
 
 /* ── UI Overlay de la Intro ── */
@@ -30,298 +32,59 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--space-8);
   z-index: 10;
 }
 
 .intro-ui > * { pointer-events: auto; }
 
-/* ── Tagline Superior Editorial (Imagen 2) ── */
-.intro-tagline {
+/* ══════════════════════════════════════════════════════════
+   ORIGEN — Marca centrada sobre el pedestal
+   Posicionada al fondo de la pantalla, alineada con la base
+   ══════════════════════════════════════════════════════════ */
+.intro-brand-center {
   position: absolute;
-  top: 32px;
+  bottom: 6vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 0;
+  text-align: center;
+  pointer-events: none;
+  animation: fadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+  /* Centrar horizontalmente respecto al pedestal que también está centrado */
   white-space: nowrap;
-  animation: fadeInDown 1.5s var(--ease-out) 0.3s both;
-  pointer-events: none;
 }
 
-.intro-tagline-line {
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.32em;
-  color: rgba(224, 212, 192, 0.7);
-  text-transform: uppercase;
-}
-
-.intro-tagline-rule {
-  width: 44px;
-  height: 1px;
-  background: var(--color-dorado);
-  opacity: 0.5;
-  margin-top: 4px;
-}
-
-/* ── Guía Central Minimalista (Entre las 3 piezas flotantes) ── */
-.intro-center-guide {
-  position: absolute;
-  top: 44%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-  animation: fadeIn 1.8s var(--ease-out) 0.8s both;
-  transition: opacity 0.5s ease;
-  z-index: 5;
-}
-
-.touch-gesture-wrap {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.touch-icon {
-  color: var(--color-dorado);
-  opacity: 0.85;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
-}
-
-.touch-pulse {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 1px solid rgba(212, 163, 115, 0.4);
-  animation: ripplePulse 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-}
-
-@keyframes ripplePulse {
-  0% { transform: scale(0.7); opacity: 0.8; }
-  100% { transform: scale(1.6); opacity: 0; }
-}
-
-.guide-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-family: var(--font-ui);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.26em;
-  color: rgba(230, 220, 204, 0.8);
-  text-transform: uppercase;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
-}
-
-/* ── Etiquetas de las Piezas con Líneas Guía (Imagen 2) ── */
-.intro-labels {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.piece-label {
-  position: absolute;
-  display: flex;
-  animation: fadeIn 2s var(--ease-out) 1.2s both;
-  pointer-events: none;
-}
-
-.piece-label--tiempo {
-  top: 13%;
-  left: 50%;
-  transform: translateX(-50%);
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-}
-
-.piece-label--tierra {
-  top: 36%;
-  left: 6%;
-  align-items: center;
-  gap: 16px;
-  text-align: left;
-}
-
-.piece-label--mano {
-  top: 36%;
-  right: 6%;
-  align-items: center;
-  flex-direction: row-reverse;
-  gap: 16px;
-  text-align: right;
-}
-
-.label-box {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.label-name {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  color: #f2ece2;
-  text-transform: uppercase;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
-}
-
-.label-desc {
-  font-family: var(--font-ui);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  color: rgba(212, 197, 169, 0.55);
-  text-transform: uppercase;
-}
-
-/* Líneas guía sutiles */
-.leader-line {
-  display: flex;
-  align-items: center;
-  opacity: 0.6;
-}
-
-.leader-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-dorado);
-  box-shadow: 0 0 6px var(--color-dorado);
-}
-
-.leader-line--tiempo {
-  flex-direction: column;
-  height: 28px;
-  width: 1px;
-  background: linear-gradient(to bottom, rgba(201, 168, 108, 0.6), transparent);
-}
-.leader-line--tiempo .leader-dot {
-  margin-top: auto;
-}
-
-.leader-line--tierra {
-  width: 48px;
-  height: 1px;
-  background: linear-gradient(to right, rgba(201, 168, 108, 0.6), transparent);
-}
-.leader-line--tierra .leader-dot {
-  margin-left: auto;
-}
-
-.leader-line--mano {
-  width: 48px;
-  height: 1px;
-  background: linear-gradient(to left, rgba(201, 168, 108, 0.6), transparent);
-}
-.leader-line--mano .leader-dot {
-  margin-right: auto;
-}
-
-/* ── Pie de Escena Bajo el Pedestal (Imagen 2) ── */
-.intro-pedestal-footer {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
-  z-index: 10;
-  pointer-events: auto;
-  animation: fadeInUp 1.6s var(--ease-out) 1.2s both;
-}
-
-.pedestal-brand-name {
+.intro-brand-name {
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+  font-size: clamp(2.4rem, 5vw, 4rem);
   font-weight: 500;
-  letter-spacing: 0.26em;
-  color: #f7f2ea;
+  letter-spacing: 0.38em;
+  color: rgba(245, 238, 225, 0.95);
   margin: 0;
-  text-shadow: 0 4px 32px rgba(0, 0, 0, 0.9);
+  text-shadow:
+    0 2px 40px rgba(0, 0, 0, 0.95),
+    0 0 80px rgba(201, 168, 108, 0.18);
+  /* Separar la última letra del margen de letter-spacing */
+  padding-right: 0.38em;
 }
 
-.pedestal-brand-sub {
-  font-family: var(--font-ui);
-  font-size: 9.5px;
-  font-weight: 400;
-  letter-spacing: 0.32em;
-  color: rgba(220, 206, 182, 0.65);
-  text-transform: uppercase;
-  margin-top: 4px;
-}
-
-.pedestal-divider {
-  width: 36px;
+.intro-brand-divider {
+  width: 32px;
   height: 1px;
-  background: var(--color-dorado);
-  opacity: 0.4;
-  margin: 8px auto 0;
+  background: linear-gradient(to right, transparent, rgba(201, 168, 108, 0.6), transparent);
+  margin-top: 10px;
 }
 
-.btn-comenzar {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 30px;
-  border: 1px solid rgba(212, 197, 169, 0.35);
-  border-radius: var(--radius-sm);
-  background: rgba(14, 12, 10, 0.65);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  color: #ece3d4;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.24em;
-  cursor: pointer;
-  transition: all 0.3s var(--ease-out);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.btn-comenzar:hover {
-  border-color: var(--color-dorado);
-  background: rgba(201, 168, 108, 0.15);
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(201, 168, 108, 0.25);
-}
-
-.btn-comenzar svg {
-  transition: transform 0.25s var(--ease-out);
-}
-.btn-comenzar:hover svg {
-  transform: translateX(4px);
-}
-
-/* ── Control de Audio Flotante ── */
+/* ══════════════════════════════════════════════════════════
+   Botón de Audio — solo icono, sin texto, sin tachar
+   ══════════════════════════════════════════════════════════ */
 .intro-audio-ctrl {
   position: absolute;
-  bottom: 28px;
-  right: 28px;
+  bottom: 6vh;
+  right: clamp(16px, 3vw, 32px);
   z-index: 15;
   pointer-events: auto;
 }
@@ -329,33 +92,42 @@
 .btn-soundtrack {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid rgba(212, 197, 169, 0.18);
-  color: rgba(212, 197, 169, 0.55);
-  font-family: var(--font-ui);
-  font-size: var(--fs-xs);
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  border-radius: 2px;
-  transition: all var(--transition-base);
-  backdrop-filter: blur(4px);
-  pointer-events: auto;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(212, 197, 169, 0.22);
+  border-radius: 50%;
+  background: rgba(10, 8, 6, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(212, 197, 169, 0.75);
   cursor: pointer;
+  transition: all 0.25s ease;
+  /* SIN text-decoration ni line-through */
+  text-decoration: none !important;
 }
+
 .btn-soundtrack:hover {
-  border-color: rgba(212, 197, 169, 0.45);
-  color: var(--color-caliza);
-  background: rgba(212, 197, 169, 0.08);
+  border-color: rgba(201, 168, 108, 0.55);
+  color: rgba(240, 228, 200, 0.95);
+  background: rgba(201, 168, 108, 0.12);
+  transform: scale(1.08);
 }
+
+/* Muted: icono más transparente — SIN tachar */
 .btn-soundtrack.muted {
   opacity: 0.45;
-  text-decoration: line-through;
+  /* text-decoration: none   ← nunca line-through */
 }
 
+.btn-soundtrack svg {
+  display: block;
+  flex-shrink: 0;
+}
 
-/* ── Overlay de Revelación ── */
+/* ══════════════════════════════════════════════════════════
+   Overlay de Revelación al completar el símbolo
+   ══════════════════════════════════════════════════════════ */
 .reveal-overlay {
   position: absolute;
   inset: 0;
@@ -368,7 +140,7 @@
   transition: opacity 1s var(--ease-out);
 }
 
-.reveal-overlay.visible {
+.reveal-overlay.active {
   opacity: 1;
   pointer-events: auto;
 }
@@ -429,57 +201,15 @@
   opacity: 1;
 }
 
-/* ── Fallback WebGL ── */
-.webgl-fallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  text-align: center;
-  padding: var(--space-8);
-  gap: var(--space-8);
-}
-
-.webgl-fallback-symbol {
-  width: 120px;
-  height: 160px;
-  color: var(--color-caliza);
-}
-
-.webgl-fallback h1 {
-  font-family: var(--font-display);
-  font-size: var(--fs-4xl);
-  letter-spacing: 0.3em;
-  color: var(--color-caliza);
-}
-
-.webgl-fallback p {
-  font-family: var(--font-ui);
-  font-size: var(--fs-sm);
-  letter-spacing: 0.1em;
-  color: var(--color-text-muted);
-}
-
 /* ── Keyframes ── */
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(-50%) translateY(18px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
-}
-
-@keyframes pulseHint {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.8; }
 }
 
 @keyframes pulseGlow {
@@ -492,37 +222,106 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Responsive Intro ── */
-@media (max-width: 768px) {
-  .intro-ui { padding: var(--space-5); }
+/* ══════════════════════════════════════════════════════════
+   MOBILE — Optimización completa para pantallas pequeñas
+   ══════════════════════════════════════════════════════════ */
 
-  .intro-tagline {
-    gap: var(--space-2);
-    top: var(--space-5);
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+  .intro-brand-name {
+    font-size: clamp(2rem, 6vw, 3rem);
+    letter-spacing: 0.32em;
+    padding-right: 0.32em;
   }
-
-  .intro-tagline-line { font-size: 8px; letter-spacing: 0.2em; }
-
-  .piece-label--tierra { left: var(--space-4); top: 52%; }
-  .piece-label--mano   { right: var(--space-4); top: 52%; }
-  .piece-label--tiempo { top: 12%; }
-
-  .label-name { font-size: 8px; letter-spacing: 0.15em; }
-  .piece-label--tierra .label-name::after,
-  .piece-label--mano .label-name::before { width: 20px; }
-
-  .label-desc { display: none; }
-
-  .intro-progress { bottom: var(--space-16); }
-  .progress-line { width: 24px; }
-
-  .intro-hint { display: none; }
-
-  #intro-title { font-size: clamp(1.5rem, 7vw, 2.25rem); }
-  .intro-headline { transform: translate(-50%, -140px); }
 }
 
+/* Móviles grandes (≤ 768px) */
+@media (max-width: 768px) {
+  .intro-ui { padding: 0; }
+
+  .intro-brand-center {
+    bottom: 5vh;
+  }
+
+  .intro-brand-name {
+    font-size: clamp(1.8rem, 8vw, 2.6rem);
+    letter-spacing: 0.28em;
+    padding-right: 0.28em;
+    text-shadow:
+      0 2px 30px rgba(0, 0, 0, 0.98),
+      0 0 50px rgba(201, 168, 108, 0.15);
+  }
+
+  .intro-brand-divider {
+    width: 24px;
+    margin-top: 8px;
+  }
+
+  .intro-audio-ctrl {
+    bottom: 5vh;
+    right: 16px;
+  }
+
+  .btn-soundtrack {
+    width: 36px;
+    height: 36px;
+  }
+
+  .btn-soundtrack svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Overlay de revelación más grande en móvil */
+  .reveal-title {
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    letter-spacing: 0.22em;
+  }
+
+  .reveal-subtitle {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+  }
+}
+
+/* Móviles pequeños (≤ 480px) */
 @media (max-width: 480px) {
-  .intro-labels { display: none; }
-  .intro-headline { transform: translate(-50%, -120px); }
+  .intro-brand-center {
+    bottom: 4vh;
+  }
+
+  .intro-brand-name {
+    font-size: clamp(1.6rem, 9vw, 2.2rem);
+    letter-spacing: 0.24em;
+    padding-right: 0.24em;
+  }
+
+  .intro-brand-divider {
+    width: 20px;
+  }
+
+  .intro-audio-ctrl {
+    bottom: 4vh;
+    right: 12px;
+  }
+
+  .btn-soundtrack {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Landscape móvil — ajustar posición vertical */
+@media (max-height: 500px) and (orientation: landscape) {
+  .intro-brand-center {
+    bottom: 2vh;
+  }
+
+  .intro-brand-name {
+    font-size: clamp(1.2rem, 4vh, 1.8rem);
+  }
+
+  .intro-audio-ctrl {
+    bottom: 2vh;
+  }
 }
