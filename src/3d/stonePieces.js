@@ -264,9 +264,9 @@ export function buildStonePieces(scene) {
   };
 
   const initials = {
-    tierra: { pos: new THREE.Vector3(-2.6,  1.00, 0.35), rot: new THREE.Euler(0.08,  0.22,-0.06) },
-    tiempo: { pos: new THREE.Vector3( 0.0,  2.70,-0.2 ), rot: new THREE.Euler(-0.14, 0.0,  0.0 ) },
-    mano:   { pos: new THREE.Vector3( 2.6,  1.00, 0.35), rot: new THREE.Euler(0.08, -0.22, 0.06) },
+    tierra: { pos: new THREE.Vector3(-2.0, -0.20, 0.35), rot: new THREE.Euler(0.08,  0.22,-0.06) },
+    tiempo: { pos: new THREE.Vector3( 0.0,  1.20,-0.2 ), rot: new THREE.Euler(-0.14, 0.0,  0.0 ) },
+    mano:   { pos: new THREE.Vector3( 2.0, -0.20, 0.35), rot: new THREE.Euler(0.08, -0.22, 0.06) },
   };
 
   const symbolGroup = new THREE.Group();

@@ -60,9 +60,9 @@ export class SceneManager {
 
     // ── Cámara cinemática ────────────────────────────────────────────────────
     const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
-    this.camera.position.set(0, 0.20, 8.0);
-    this.camera.lookAt(0, -0.25, 0);
+    this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 100);
+    this.camera.position.set(0, 0.20, 9.5);
+    this.camera.lookAt(0, -0.60, 0);
 
     // ── Renderer de alta fidelidad ───────────────────────────────────────────
     this.renderer = new THREE.WebGLRenderer({
@@ -203,11 +203,11 @@ export class SceneManager {
 
     this.camera.aspect = width / height;
     if (width < 768) {
-      this.camera.fov = 52;
-      this.camera.position.z = 10.5;
+      this.camera.fov = 62;
+      this.camera.position.z = 11.0;
     } else {
-      this.camera.fov = 42;
-      this.camera.position.z = 8.2;
+      this.camera.fov = 55;
+      this.camera.position.z = 9.5;
     }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
