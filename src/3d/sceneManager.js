@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 /**
  * ORIGEN — Scene Manager
- * Configuración de la escena 3D, iluminación cinemática de atardecer,
- * niebla volumétrica, partículas de polvo en suspensión y bucle de render.
+ * Fondo panorámico de paisaje real, iluminación cinemática de atardecer,
+ * partículas de polvo en suspensión y bucle de render.
  */
 
 export class SceneManager {
@@ -22,38 +22,48 @@ export class SceneManager {
   }
 
   init() {
-    // 1. Escena con niebla de atardecer y fondo panorámico
     this.scene = new THREE.Scene();
-    
-    // Cargar la textura de fondo panorámica generada
+
+    // ── Fondo: textura 2D directa (no equirectangular) ──────────────────────
+    // Se usa como background plano para que el paisaje se vea completo y nítido
     const textureLoader = new THREE.TextureLoader();
-    const applyTexture = (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
+
+    const applyBackground = (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace;
+      // Mantener relación de aspecto cubriendo toda la pantalla (como CSS cover)
+      texture.mapping = THREE.UVMapping;
       this.scene.background = texture;
-      this.scene.environment = texture; // Útil para reflejos PBR en las piedras
+      this.scene.backgroundBlurriness = 0.0;
+      // Leve tinte de ambiente que saca color del paisaje hacia las piedras
+      this.scene.environment = null;
     };
 
+    // Intentar rutas en orden de prioridad
     textureLoader.load(
-      '/images/origen_panoramic_background.jpg',
-      applyTexture,
+      '/assets/images/origen_panoramic_background.jpg',
+      applyBackground,
       undefined,
       () => {
-        textureLoader.load('/assets/images/origen_panoramic_background.jpg', applyTexture);
+        textureLoader.load('/images/origen_panoramic_background.jpg', applyBackground, undefined, () => {
+          // Fallback: color oscuro cálido de atardecer
+          this.scene.background = new THREE.Color(0x1a1108);
+        });
       }
     );
 
-    // Fallback de color mientras carga y niebla cálida de atardecer muy sutil
-    this.scene.background = new THREE.Color(0x18120e);
-    this.scene.fog = new THREE.Fog(0x2c1c14, 14, 50);
+    // Color inicial mientras carga
+    this.scene.background = new THREE.Color(0x1a1108);
 
-    // 2. Cámara cinemática (perspectiva arquitectónica)
+    // Niebla muy sutil — sólo para dar profundidad a objetos lejanos, no oculta fondo
+    this.scene.fog = new THREE.FogExp2(0x2a1a0e, 0.018);
+
+    // ── Cámara cinemática ────────────────────────────────────────────────────
     const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
     this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
     this.camera.position.set(0, 1.1, 8.0);
     this.camera.lookAt(0, 0.2, 0);
 
-    // 3. Renderer de alta fidelidad
+    // ── Renderer de alta fidelidad ───────────────────────────────────────────
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       antialias: true,
@@ -65,96 +75,89 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.22;
+    this.renderer.toneMappingExposure = 1.15;
 
-    // 4. Iluminación arquitectónica cálida (Atardecer en la Sierra)
     this.setupLighting();
-
-    // 5. Partículas de polvo en suspensión (materia viva)
     this.setupDustParticles();
 
-    // 6. Resize listener
     window.addEventListener('resize', this.onWindowResize.bind(this));
     this.onWindowResize();
-
-    // 7. Iniciar loop
     this.render();
   }
 
   setupLighting() {
-    // Luz ambiental equilibrada para preservar sombras y textura natural
-    const ambientLight = new THREE.AmbientLight(0x3a322c, 1.5);
+    // Luz ambiental suave — permite ver el color real de los materiales
+    const ambientLight = new THREE.AmbientLight(0x4a3c2e, 2.2);
     this.scene.add(ambientLight);
     this.lights.ambient = ambientLight;
 
-    // Luz principal rasante de atardecer en la Sierra (cálida dorada)
-    const sunLight = new THREE.DirectionalLight(0xffbe7a, 3.2);
-    sunLight.position.set(4.8, 4.2, 3.6);
+    // Sol rasante de atardecer — ilumina desde la derecha-arriba cálida
+    const sunLight = new THREE.DirectionalLight(0xffc070, 3.8);
+    sunLight.position.set(5.5, 4.5, 4.0);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 25;
-    sunLight.shadow.camera.left = -6;
-    sunLight.shadow.camera.right = 6;
-    sunLight.shadow.camera.top = 6;
-    sunLight.shadow.camera.bottom = -6;
-    sunLight.shadow.bias = -0.0004;
+    sunLight.shadow.camera.far = 30;
+    sunLight.shadow.camera.left = -7;
+    sunLight.shadow.camera.right = 7;
+    sunLight.shadow.camera.top = 7;
+    sunLight.shadow.camera.bottom = -7;
+    sunLight.shadow.bias = -0.0003;
     this.scene.add(sunLight);
     this.lights.sun = sunLight;
 
-    // Luz de contra / perfilado escultórico para recortar el relieve
-    const rimLight = new THREE.DirectionalLight(0x8da0bc, 1.6);
-    rimLight.position.set(-5.5, 3.2, -4.0);
+    // Contra-luz azulada fría para perfilar las piezas y dar volumen
+    const rimLight = new THREE.DirectionalLight(0x7090b0, 1.4);
+    rimLight.position.set(-6, 3, -5);
     this.scene.add(rimLight);
     this.lights.rim = rimLight;
 
-    // Resplandor cálido proyectado sobre la mesa del pedestal
-    const pedestalGlow = new THREE.PointLight(0xffa844, 2.2, 6.5, 1.4);
-    pedestalGlow.position.set(0, -1.0, 0.6);
+    // Resplandor cálido desde el pedestal hacia arriba
+    const pedestalGlow = new THREE.PointLight(0xff9844, 2.0, 7.0, 1.6);
+    pedestalGlow.position.set(0, -1.2, 0.8);
     this.scene.add(pedestalGlow);
     this.lights.pedestal = pedestalGlow;
   }
 
   setupDustParticles() {
-    const particleCount = 140;
+    const particleCount = 100;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const velocities = [];
 
     for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 12;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 8 + 0.5;
+      positions[i * 3]     = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 10 + 0.5;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
 
       velocities.push({
-        x: (Math.random() - 0.5) * 0.004,
-        y: Math.random() * 0.003 + 0.001,
-        z: (Math.random() - 0.5) * 0.004
+        x: (Math.random() - 0.5) * 0.003,
+        y: Math.random() * 0.0025 + 0.0008,
+        z: (Math.random() - 0.5) * 0.003
       });
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-    // Textura circular suave para las partículas
     const canvas = document.createElement('canvas');
     canvas.width = 32;
     canvas.height = 32;
     const ctx = canvas.getContext('2d');
     const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-    grad.addColorStop(0, 'rgba(255, 230, 180, 1)');
-    grad.addColorStop(0.4, 'rgba(230, 190, 130, 0.4)');
-    grad.addColorStop(1, 'rgba(200, 160, 100, 0)');
+    grad.addColorStop(0, 'rgba(255, 210, 150, 1)');
+    grad.addColorStop(0.5, 'rgba(220, 170, 100, 0.3)');
+    grad.addColorStop(1, 'rgba(180, 130, 80, 0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 32, 32);
 
     const texture = new THREE.CanvasTexture(canvas);
 
     const material = new THREE.PointsMaterial({
-      size: 0.16,
+      size: 0.12,
       map: texture,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -169,55 +172,46 @@ export class SceneManager {
     const positions = this.particles.geometry.attributes.position.array;
     for (let i = 0; i < this.particleVelocities.length; i++) {
       const v = this.particleVelocities[i];
-      positions[i * 3] += v.x;
+      positions[i * 3]     += v.x;
       positions[i * 3 + 1] += v.y;
       positions[i * 3 + 2] += v.z;
 
-      // Reseteo al salir de los límites
-      if (positions[i * 3 + 1] > 4.5) positions[i * 3 + 1] = -2.5;
-      if (positions[i * 3] > 6) positions[i * 3] = -6;
-      if (positions[i * 3] < -6) positions[i * 3] = 6;
+      if (positions[i * 3 + 1] > 5)  positions[i * 3 + 1] = -3;
+      if (positions[i * 3]     > 7)  positions[i * 3]     = -7;
+      if (positions[i * 3]     < -7) positions[i * 3]     =  7;
     }
     this.particles.geometry.attributes.position.needsUpdate = true;
   }
 
   onWindowResize() {
     if (!this.canvas || this.isDisposed) return;
-    const width = this.canvas.clientWidth || window.innerWidth;
+    const width  = this.canvas.clientWidth  || window.innerWidth;
     const height = this.canvas.clientHeight || window.innerHeight;
 
     this.camera.aspect = width / height;
-    // Adaptar distancia de cámara según formato (móvil vs desktop)
     if (width < 768) {
       this.camera.fov = 52;
-      this.camera.position.z = 10.2;
+      this.camera.position.z = 10.5;
     } else {
       this.camera.fov = 42;
       this.camera.position.z = 8.2;
     }
     this.camera.updateProjectionMatrix();
-
     this.renderer.setSize(width, height, false);
   }
 
-  addUpdateCallback(fn) {
-    this.animationCallbacks.push(fn);
-  }
-
-  removeUpdateCallback(fn) {
-    this.animationCallbacks = this.animationCallbacks.filter(cb => cb !== fn);
-  }
+  addUpdateCallback(fn)    { this.animationCallbacks.push(fn); }
+  removeUpdateCallback(fn) { this.animationCallbacks = this.animationCallbacks.filter(cb => cb !== fn); }
 
   render() {
     if (this.isDisposed) return;
     requestAnimationFrame(this.render.bind(this));
 
-    const delta = this.clock.getDelta();
+    const delta       = this.clock.getDelta();
     const elapsedTime = this.clock.getElapsedTime();
 
     this.updateParticles();
 
-    // Ejecutar callbacks registrados (físicas, imán, cámara)
     for (let i = 0; i < this.animationCallbacks.length; i++) {
       this.animationCallbacks[i](delta, elapsedTime);
     }
@@ -228,8 +222,6 @@ export class SceneManager {
   dispose() {
     this.isDisposed = true;
     window.removeEventListener('resize', this.onWindowResize.bind(this));
-    if (this.renderer) {
-      this.renderer.dispose();
-    }
+    if (this.renderer) this.renderer.dispose();
   }
 }

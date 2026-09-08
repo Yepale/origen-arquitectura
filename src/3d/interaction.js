@@ -309,9 +309,7 @@ export class InteractionController {
       ease: 'power2.out'
     });
 
-    if (piece.ghost) {
-      piece.ghost.material.opacity = 0.18;
-    }
+    // Ghost invisible — escena limpia, sin marcadores de destino
   }
 
   /**

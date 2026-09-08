@@ -352,8 +352,7 @@ class OrigenApp {
       p.group.position.copy(p.initialPos);
       p.group.rotation.copy(p.initialRot);
       if (p.ghost) {
-        p.ghost.visible = true;
-        p.ghost.material.opacity = 0.22;
+        p.ghost.visible = false; // Ghost siempre invisible — escena limpia
       }
       if (p.glowMesh) {
         p.glowMesh.visible = false;
