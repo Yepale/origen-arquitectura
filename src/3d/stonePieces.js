@@ -350,7 +350,7 @@ export function buildStonePieces(scene) {
     opacity: 0.35
   });
   const guideRing = new THREE.Mesh(ringGeom, ringMat);
-  guideRing.position.y = -1.45;
+  guideRing.position.y = -1.64;
   pedestalGroup.add(guideRing);
 
   // CARGA DEL MODELO 3D DEL PEDESTAL (pedestal.glb)
@@ -365,9 +365,9 @@ export function buildStonePieces(scene) {
           child.receiveShadow = true;
         }
       });
-      // Escalar y alinear el pedestal bajo el símbolo
+      // Escalar y alinear el pedestal bajo el símbolo (altura ~1.83, mesa superior a -1.65)
       model.scale.set(4.8, 4.8, 4.8);
-      model.position.set(0, -2.1, 0);
+      model.position.set(0, -3.48, 0);
       pedestalGroup.add(model);
     },
     undefined,
@@ -389,10 +389,13 @@ export function buildStonePieces(scene) {
       // Extraemos las partes del GLB para sustituir los meshes
       const partsMap = {};
       gltf.scene.traverse((child) => {
+        if (child.name) partsMap[child.name] = child;
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          partsMap[child.name] = child;
+          if (child.parent && child.parent.name) {
+            partsMap[child.parent.name] = child;
+          }
         }
       });
 
@@ -419,7 +422,8 @@ export function buildStonePieces(scene) {
         const meshTiempo = partsMap['tripo_part_2'];
         meshTiempo.material = materials.tiempo;
         meshTiempo.scale.set(SCALE, SCALE, SCALE);
-        meshTiempo.position.set(0, -1.65, 0);
+        // Al estar targetPos.y en 1.25, un offset Y de -2.90 sitúa la base en 1.25 - 2.90 = -1.65, alineada al milímetro
+        meshTiempo.position.set(0, -2.90, 0);
         meshTiempo.userData = { pieceName: 'tiempo' };
 
         pieces.tiempo.group.remove(pieces.tiempo.mesh);

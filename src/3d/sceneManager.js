@@ -22,8 +22,20 @@ export class SceneManager {
   }
 
   init() {
-    // 1. Escena con niebla de atardecer
+    // 1. Escena con niebla de atardecer y fondo panorámico
     this.scene = new THREE.Scene();
+    
+    // Cargar la textura de fondo panorámica generada
+    const textureLoader = new THREE.TextureLoader();
+    const bgTexture = textureLoader.load('/assets/images/origen_panoramic_background.jpg', (texture) => {
+      // Ajustar mapping para que funcione como fondo esférico o plano
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.scene.background = texture;
+      this.scene.environment = texture; // Útil para reflejos PBR en las piedras
+    });
+
+    // Fallback de color mientras carga
     this.scene.background = new THREE.Color(0x0d0d10);
     this.scene.fog = new THREE.FogExp2(0x0d0d10, 0.04);
 
