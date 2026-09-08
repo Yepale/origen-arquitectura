@@ -38,47 +38,37 @@
 .intro-ui > * { pointer-events: auto; }
 
 /* ══════════════════════════════════════════════════════════
-   ORIGEN — Marca exactamente centrada con el pedestal
+   ORIGEN — Logo imagen centrado bajo el pedestal
    ══════════════════════════════════════════════════════════ */
 .intro-brand-center {
   position: absolute;
-  bottom: 2.5vh;
+  bottom: 3vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  text-align: center;
   pointer-events: none;
   animation: fadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
   white-space: nowrap;
   z-index: 12;
 }
 
-.intro-brand-name {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.2vw, 3.4rem);
-  font-weight: 500;
-  letter-spacing: 0.42em;
-  margin: 0;
-  /* Compensar exactamente el espaciado de la última letra para centrado absoluto */
-  margin-right: -0.42em;
-  padding-right: 0;
-  color: #f5eee1;
-  text-shadow:
-    0 2px 25px rgba(0, 0, 0, 0.95),
-    0 4px 60px rgba(0, 0, 0, 0.85),
-    0 0 45px rgba(210, 165, 95, 0.3);
-  text-align: center;
-}
-
-.intro-brand-divider {
-  width: 32px;
-  height: 1px;
-  background: linear-gradient(to right, transparent, rgba(201, 168, 108, 0.6), transparent);
-  margin-top: 10px;
+.intro-brand-logo {
+  display: block;
+  width: clamp(200px, 28vw, 420px);
+  height: auto;
+  /* La imagen ya tiene fondo blanco; mezclamos para que case con el fondo oscuro */
+  mix-blend-mode: screen;
+  opacity: 0.92;
+  /* Sombra suave para integrarlo en la escena */
+  filter:
+    drop-shadow(0 4px 32px rgba(0, 0, 0, 0.85))
+    drop-shadow(0 0 20px rgba(201, 168, 108, 0.25));
+  transition: opacity 0.4s ease;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -231,10 +221,8 @@
 
 /* Tablets y pantallas medianas */
 @media (max-width: 1024px) {
-  .intro-brand-name {
-    font-size: clamp(2rem, 6vw, 3rem);
-    letter-spacing: 0.32em;
-    padding-right: 0.32em;
+  .intro-brand-logo {
+    width: clamp(160px, 26vw, 340px);
   }
 }
 
@@ -246,18 +234,8 @@
     bottom: 5vh;
   }
 
-  .intro-brand-name {
-    font-size: clamp(1.8rem, 8vw, 2.6rem);
-    letter-spacing: 0.28em;
-    padding-right: 0.28em;
-    text-shadow:
-      0 2px 30px rgba(0, 0, 0, 0.98),
-      0 0 50px rgba(201, 168, 108, 0.15);
-  }
-
-  .intro-brand-divider {
-    width: 24px;
-    margin-top: 8px;
+  .intro-brand-logo {
+    width: clamp(140px, 48vw, 280px);
   }
 
   .intro-audio-ctrl {
@@ -293,14 +271,8 @@
     bottom: 4vh;
   }
 
-  .intro-brand-name {
-    font-size: clamp(1.6rem, 9vw, 2.2rem);
-    letter-spacing: 0.24em;
-    padding-right: 0.24em;
-  }
-
-  .intro-brand-divider {
-    width: 20px;
+  .intro-brand-logo {
+    width: clamp(120px, 52vw, 220px);
   }
 
   .intro-audio-ctrl {
@@ -320,8 +292,8 @@
     bottom: 2vh;
   }
 
-  .intro-brand-name {
-    font-size: clamp(1.2rem, 4vh, 1.8rem);
+  .intro-brand-logo {
+    width: clamp(100px, 20vh, 200px);
   }
 
   .intro-audio-ctrl {

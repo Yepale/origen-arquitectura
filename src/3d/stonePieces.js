@@ -374,10 +374,9 @@ export function buildStonePieces(scene) {
         }
       });
 
-      // Escala 3.4 y posición -2.60: altura = 1.30, cumbre = -1.30 (apoyo exacto de las piedras)
-      // La base queda en -2.60 con margen inferior limpio para el texto ORIGEN
+      // Escala 3.4 y posición -3.10: pedestal apoyado visualmente en el suelo (sin flotación)
       model.scale.set(3.4, 3.4, 3.4);
-      model.position.set(0, -2.60, 0);
+      model.position.set(0, -3.10, 0);
       pedestalGroup.add(model);
       onGlbReady();
     },
