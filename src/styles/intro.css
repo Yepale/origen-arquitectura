@@ -42,7 +42,11 @@
    ══════════════════════════════════════════════════════════ */
 .intro-brand-center {
   position: absolute;
-  bottom: 3vh;
+  /* Alineado con la base del pedestal 3D:
+     el pedestal proyecta su borde inferior a ~28vh desde abajo.
+     Colocamos el logo a ~22vh para que quede justo bajo esa base,
+     sin solaparse con el tambor y sin perderse en el borde. */
+  bottom: 22vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -231,7 +235,7 @@
   .intro-ui { padding: 0; }
 
   .intro-brand-center {
-    bottom: 5vh;
+    bottom: 18vh;
   }
 
   .intro-brand-logo {
@@ -268,7 +272,7 @@
 /* Móviles pequeños (≤ 480px) */
 @media (max-width: 480px) {
   .intro-brand-center {
-    bottom: 4vh;
+    bottom: 14vh;
   }
 
   .intro-brand-logo {
@@ -289,7 +293,7 @@
 /* Landscape móvil — ajustar posición vertical */
 @media (max-height: 500px) and (orientation: landscape) {
   .intro-brand-center {
-    bottom: 2vh;
+    bottom: 6vh;
   }
 
   .intro-brand-logo {
