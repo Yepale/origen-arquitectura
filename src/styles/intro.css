@@ -23,8 +23,8 @@
   height: 100% !important;
   display: block;
   touch-action: none;
-  /* La transición de opacidad da el fade-in suave de carga */
-  transition: opacity 0.8s ease;
+  opacity: 0; /* Inicia invisible para permitir una carga homogénea sin destello */
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── UI Overlay de la Intro ── */
@@ -38,37 +38,40 @@
 .intro-ui > * { pointer-events: auto; }
 
 /* ══════════════════════════════════════════════════════════
-   ORIGEN — Marca centrada sobre el pedestal
-   Posicionada al fondo de la pantalla, alineada con la base
+   ORIGEN — Marca exactamente centrada con el pedestal
    ══════════════════════════════════════════════════════════ */
 .intro-brand-center {
   position: absolute;
-  bottom: 6vh;
+  bottom: 2.5vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0;
   text-align: center;
   pointer-events: none;
   animation: fadeInUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
-  /* Centrar horizontalmente respecto al pedestal que también está centrado */
   white-space: nowrap;
+  z-index: 12;
 }
 
 .intro-brand-name {
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
   font-weight: 500;
-  letter-spacing: 0.38em;
-  color: rgba(245, 238, 225, 0.95);
+  letter-spacing: 0.42em;
   margin: 0;
+  /* Compensar exactamente el espaciado de la última letra para centrado absoluto */
+  margin-right: -0.42em;
+  padding-right: 0;
+  color: #f5eee1;
   text-shadow:
-    0 2px 40px rgba(0, 0, 0, 0.95),
-    0 0 80px rgba(201, 168, 108, 0.18);
-  /* Separar la última letra del margen de letter-spacing */
-  padding-right: 0.38em;
+    0 2px 25px rgba(0, 0, 0, 0.95),
+    0 4px 60px rgba(0, 0, 0, 0.85),
+    0 0 45px rgba(210, 165, 95, 0.3);
+  text-align: center;
 }
 
 .intro-brand-divider {

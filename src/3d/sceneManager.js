@@ -41,7 +41,7 @@ export class SceneManager {
 
     // Intentar rutas en orden de prioridad
     textureLoader.load(
-      '/assets/images/origen_panoramic_background.jpg',
+      '/images/origen_panoramic_background.jpg',
       applyBackground,
       undefined,
       () => {
@@ -60,9 +60,9 @@ export class SceneManager {
 
     // ── Cámara cinemática ────────────────────────────────────────────────────
     const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
-    this.camera.position.set(0, 1.1, 8.0);
-    this.camera.lookAt(0, 0.2, 0);
+    this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
+    this.camera.position.set(0, 0.20, 8.0);
+    this.camera.lookAt(0, -0.25, 0);
 
     // ── Renderer de alta fidelidad ───────────────────────────────────────────
     this.renderer = new THREE.WebGLRenderer({
@@ -76,7 +76,7 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.05;
 
     this.setupLighting();
     this.setupDustParticles();
@@ -87,14 +87,20 @@ export class SceneManager {
   }
 
   setupLighting() {
-    // Luz ambiental suave — permite ver el color real de los materiales
-    const ambientLight = new THREE.AmbientLight(0x4a3c2e, 2.2);
+    // Luz ambiental neutra cálida — revela los detalles de la roca sin lavar los colores
+    const ambientLight = new THREE.AmbientLight(0x8a7f72, 1.25);
     this.scene.add(ambientLight);
     this.lights.ambient = ambientLight;
 
-    // Sol rasante de atardecer — ilumina desde la derecha-arriba cálida
-    const sunLight = new THREE.DirectionalLight(0xffc070, 3.8);
-    sunLight.position.set(5.5, 4.5, 4.0);
+    // Luz hemisférica: cielo cálido arriba, rebote de tierra abajo
+    const hemiLight = new THREE.HemisphereLight(0xb0c8e0, 0x6a5440, 1.4);
+    hemiLight.position.set(0, 10, 0);
+    this.scene.add(hemiLight);
+    this.lights.hemi = hemiLight;
+
+    // Luz solar dorada de atardecer rasante
+    const sunLight = new THREE.DirectionalLight(0xffedd2, 2.2);
+    sunLight.position.set(5.5, 4.0, 4.0);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
@@ -108,17 +114,23 @@ export class SceneManager {
     this.scene.add(sunLight);
     this.lights.sun = sunLight;
 
-    // Contra-luz azulada fría para perfilar las piezas y dar volumen
-    const rimLight = new THREE.DirectionalLight(0x7090b0, 1.4);
+    // Contra-luz sutil para perfilar siluetas
+    const rimLight = new THREE.DirectionalLight(0x9ab8dc, 1.0);
     rimLight.position.set(-6, 3, -5);
     this.scene.add(rimLight);
     this.lights.rim = rimLight;
 
-    // Resplandor cálido desde el pedestal hacia arriba
-    const pedestalGlow = new THREE.PointLight(0xff9844, 2.0, 7.0, 1.6);
-    pedestalGlow.position.set(0, -1.2, 0.8);
-    this.scene.add(pedestalGlow);
-    this.lights.pedestal = pedestalGlow;
+    // Luz solar cálida dedicada al pedestal: baña el tambor esculpido revelando sus relieves
+    const pedestalSun = new THREE.DirectionalLight(0xffdfb2, 1.5);
+    pedestalSun.position.set(3.2, 0.2, 4.5);
+    this.scene.add(pedestalSun);
+    this.lights.pedestalSun = pedestalSun;
+
+    // Luz frontal suave de relleno para los bajorrelieves
+    const pedestalFront = new THREE.DirectionalLight(0xffeedd, 0.85);
+    pedestalFront.position.set(0, -0.6, 5.5);
+    this.scene.add(pedestalFront);
+    this.lights.pedestalFront = pedestalFront;
   }
 
   setupDustParticles() {

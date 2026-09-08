@@ -117,37 +117,106 @@ function createBumpTexture() {
   return tex;
 }
 
-// ── Materiales PBR — colores exactos del logo ────────────────────────────────
+// ── Generador de mapa de ruido mineral (grayscale) para relieve y rugosidad ──
+function createMineralNoiseTexture(scale = 1.0, contrast = 1.0) {
+  const size = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  const d = img.data;
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const n1 = Math.sin(x * 0.05 * scale + y * 0.03 * scale) * Math.cos(y * 0.04 * scale - x * 0.02 * scale);
+      const n2 = Math.sin(x * 0.12 * scale + y * 0.1 * scale) * 0.5;
+      const grain = (Math.random() - 0.5) * 0.35;
+      let val = 0.5 + (n1 * 0.28 + n2 * 0.18 + grain) * contrast;
+      val = Math.max(0, Math.min(1, val));
+      const byteVal = Math.floor(val * 255);
+      d[i] = byteVal;
+      d[i+1] = byteVal;
+      d[i+2] = byteVal;
+      d[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// ── Generar coordenadas UV automáticas (Box Projection) para modelos sin UVs ──
+function generateBoxUVs(geometry, scale = 1.0) {
+  if (!geometry || !geometry.attributes.position) return;
+  const pos = geometry.attributes.position;
+  const norm = geometry.attributes.normal;
+  const count = pos.count;
+  const uvs = new Float32Array(count * 2);
+
+  for (let i = 0; i < count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+
+    let nx = 0, ny = 1, nz = 0;
+    if (norm) {
+      nx = Math.abs(norm.getX(i));
+      ny = Math.abs(norm.getY(i));
+      nz = Math.abs(norm.getZ(i));
+    }
+
+    let u = 0, v = 0;
+    if (nx >= ny && nx >= nz) {
+      u = z * scale;
+      v = y * scale;
+    } else if (ny >= nx && ny >= nz) {
+      u = x * scale;
+      v = z * scale;
+    } else {
+      u = x * scale;
+      v = y * scale;
+    }
+    uvs[i * 2]     = u;
+    uvs[i * 2 + 1] = v;
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geometry.attributes.uv.needsUpdate = true;
+}
+
+// ── Materiales PBR — Colores y acabados EXACTOS del logo original ─────────────
 export function createStoneMaterials() {
-  const bump = createBumpTexture();
+  const bump = createMineralNoiseTexture(1.2, 1.4);
+  const roughMap = createMineralNoiseTexture(0.9, 0.8);
 
   return {
-    // TIERRA — arenisca naranja terracota agrietada
+    // TIERRA — arenisca dorada / cálida de Teruel (exacto al logo)
     tierra: new THREE.MeshStandardMaterial({
-      color:    0xc87040,
-      map:      createStoneTexture('tierra'),
-      bumpMap:  bump,
-      bumpScale: 0.065,
-      roughness: 0.91,
-      metalness: 0.02,
+      color:        0xcf823a,
+      roughness:    0.88,
+      roughnessMap: roughMap,
+      metalness:    0.02,
+      bumpMap:      bump,
+      bumpScale:    0.045,
     }),
-    // TIEMPO — caliza crema pálida mineral
+    // TIEMPO — caliza crema suave / arenisca clara pálida (exacto al logo)
     tiempo: new THREE.MeshStandardMaterial({
-      color:    0xc0a878,
-      map:      createStoneTexture('tiempo'),
-      bumpMap:  bump,
-      bumpScale: 0.04,
-      roughness: 0.87,
-      metalness: 0.03,
+      color:        0xd6c4a1,
+      roughness:    0.84,
+      roughnessMap: roughMap,
+      metalness:    0.02,
+      bumpMap:      bump,
+      bumpScale:    0.035,
     }),
-    // MANO — pizarra gris antracita con mano grabada
+    // MANO — pizarra gris neutral / roca gris tallada (exacto al logo)
     mano: new THREE.MeshStandardMaterial({
-      color:    0x78828e,
-      map:      createStoneTexture('mano'),
-      bumpMap:  bump,
-      bumpScale: 0.055,
-      roughness: 0.89,
-      metalness: 0.04,
+      color:        0x9097a0,
+      roughness:    0.86,
+      roughnessMap: roughMap,
+      metalness:    0.03,
+      bumpMap:      bump,
+      bumpScale:    0.045,
     }),
     bronce: new THREE.MeshStandardMaterial({
       color: 0x9a7232, roughness: 0.5, metalness: 0.7,
@@ -163,7 +232,7 @@ export function createStoneMaterials() {
   };
 }
 
-// ── Geometrías procedurales de respaldo ─────────────────────────────────────
+// ── Geometrías procedurales de respaldo (solo en caso de error GLB) ───────────
 function extrudeShape(pts, cfg = {}) {
   const s = new THREE.Shape();
   s.moveTo(pts[0][0], pts[0][1]);
@@ -189,31 +258,32 @@ export function buildStonePieces(scene) {
   const materials = createStoneMaterials();
 
   const targets = {
-    tierra: { pos: new THREE.Vector3(-0.55, 0.0, 0.0), rot: new THREE.Euler(0,0,0) },
-    tiempo: { pos: new THREE.Vector3(0.0,  1.25, 0.0), rot: new THREE.Euler(0,0,0) },
-    mano:   { pos: new THREE.Vector3(0.55, 0.0,  0.0), rot: new THREE.Euler(0,0,0) },
+    tierra: { pos: new THREE.Vector3(-0.55, 0.35, 0.0), rot: new THREE.Euler(0,0,0) },
+    tiempo: { pos: new THREE.Vector3(0.0,  1.60, 0.0), rot: new THREE.Euler(0,0,0) },
+    mano:   { pos: new THREE.Vector3(0.55, 0.35,  0.0), rot: new THREE.Euler(0,0,0) },
   };
 
   const initials = {
-    tierra: { pos: new THREE.Vector3(-2.6,  0.65, 0.35), rot: new THREE.Euler(0.08,  0.22,-0.06) },
-    tiempo: { pos: new THREE.Vector3( 0.0,  2.35,-0.2 ), rot: new THREE.Euler(-0.14, 0.0,  0.0 ) },
-    mano:   { pos: new THREE.Vector3( 2.6,  0.65, 0.35), rot: new THREE.Euler(0.08, -0.22, 0.06) },
+    tierra: { pos: new THREE.Vector3(-2.6,  1.00, 0.35), rot: new THREE.Euler(0.08,  0.22,-0.06) },
+    tiempo: { pos: new THREE.Vector3( 0.0,  2.70,-0.2 ), rot: new THREE.Euler(-0.14, 0.0,  0.0 ) },
+    mano:   { pos: new THREE.Vector3( 2.6,  1.00, 0.35), rot: new THREE.Euler(0.08, -0.22, 0.06) },
   };
 
   const symbolGroup = new THREE.Group();
   symbolGroup.name = 'symbolGroup';
-  // Oculto hasta que el GLB cargue
-  symbolGroup.visible = false;
+  symbolGroup.visible = false; // Oculto hasta que carguen los GLB
   scene.add(symbolGroup);
 
   function makePiece(name, geom, mat, initial, target) {
     const group = new THREE.Group();
     group.name = `piece_${name}`;
 
+    // Malla procedural de respaldo — oculta inicialmente para evitar cualquier destello low-poly
     const mesh = new THREE.Mesh(geom, mat);
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.name = `mesh_${name}`;
     mesh.userData = { pieceName: name };
+    mesh.visible = false; // Solo se activa si falla el GLB
     group.add(mesh);
 
     const glowG = geom.clone();
@@ -256,29 +326,23 @@ export function buildStonePieces(scene) {
   // ── Pedestal ────────────────────────────────────────────────────────────────
   const pedestalGroup = new THREE.Group();
   pedestalGroup.name = 'pedestal';
-  // También oculto hasta carga
-  pedestalGroup.visible = false;
+  pedestalGroup.visible = false; // Oculto hasta carga completa
   scene.add(pedestalGroup);
 
-  // Rotación solo en Y — sin tambalear
-  // Se gestiona desde el bucle de animación del SceneManager
   pedestalGroup.userData.autoRotateY = true;
 
   const loader = new GLTFLoader();
-  let glbCount = 0; // cuántos GLB han cargado
+  let glbCount = 0;
 
   const onGlbReady = () => {
     glbCount++;
-    // Mostrar toda la escena cuando AMBOS GLB estén listos
+    // Revelar toda la escena de forma coordinada, homogénea y suave
     if (glbCount >= 2) {
       symbolGroup.visible = true;
       pedestalGroup.visible = true;
-      // Fade-in suave vía opacity del material del renderer (CSS en canvas)
+
       const canvas = document.getElementById('main-canvas');
       if (canvas) {
-        canvas.style.opacity = '0';
-        canvas.style.transition = 'opacity 0.8s ease';
-        // Forzar reflow y animar
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             canvas.style.opacity = '1';
@@ -288,16 +352,32 @@ export function buildStonePieces(scene) {
     }
   };
 
+  // Cargar Pedestal
   loader.load('/models/pedestal.glb',
     (gltf) => {
       const model = gltf.scene;
       model.traverse(child => {
         if (child.isMesh) {
           child.castShadow = child.receiveShadow = true;
+          // Preservar UVs y mapas horneados auténticos
+          if (child.material) {
+            if (child.material.map) {
+              child.material.map.colorSpace = THREE.SRGBColorSpace;
+            }
+            if (child.material.normalMap) {
+              child.material.normalScale.set(1.8, 1.8);
+            }
+            child.material.roughness = 0.76;
+            child.material.metalness = 0.02;
+            child.material.needsUpdate = true;
+          }
         }
       });
-      model.scale.set(4.8, 4.8, 4.8);
-      model.position.set(0, -3.48, 0);
+
+      // Escala 3.4 y posición -2.60: altura = 1.30, cumbre = -1.30 (apoyo exacto de las piedras)
+      // La base queda en -2.60 con margen inferior limpio para el texto ORIGEN
+      model.scale.set(3.4, 3.4, 3.4);
+      model.position.set(0, -2.60, 0);
       pedestalGroup.add(model);
       onGlbReady();
     },
@@ -310,10 +390,11 @@ export function buildStonePieces(scene) {
       );
       ped.position.y = -2.0;
       pedestalGroup.add(ped);
-      onGlbReady(); // Contar también el fallback
+      onGlbReady();
     }
   );
 
+  // Cargar Rocky Y
   loader.load('/models/rocky_y.glb',
     (gltf) => {
       const partsMap = {};
@@ -321,6 +402,7 @@ export function buildStonePieces(scene) {
         if (child.name) partsMap[child.name] = child;
         if (child.isMesh) {
           child.castShadow = child.receiveShadow = true;
+          generateBoxUVs(child.geometry, 1.2);
           if (child.parent && child.parent.name) {
             partsMap[child.parent.name] = child;
           }
@@ -329,31 +411,33 @@ export function buildStonePieces(scene) {
 
       const SCALE = 3.4;
 
-      // TIERRA — arenisca naranja (rama izquierda)
+      // TIERRA — arenisca dorada/cálida (rama izquierda)
       if (partsMap['tripo_part_1']) {
         const m = partsMap['tripo_part_1'];
         m.material = materials.tierra;
         m.scale.set(SCALE, SCALE, SCALE);
         m.position.set(0.55, -1.65, 0);
         m.userData = { pieceName: 'tierra' };
+        m.visible = true;
         pieces.tierra.group.remove(pieces.tierra.mesh);
         pieces.tierra.mesh = m;
         pieces.tierra.group.add(m);
       }
 
-      // TIEMPO — caliza crema (clave central)
+      // TIEMPO — caliza crema suave (clave central)
       if (partsMap['tripo_part_2']) {
         const m = partsMap['tripo_part_2'];
         m.material = materials.tiempo;
         m.scale.set(SCALE, SCALE, SCALE);
         m.position.set(0, -2.90, 0);
         m.userData = { pieceName: 'tiempo' };
+        m.visible = true;
         pieces.tiempo.group.remove(pieces.tiempo.mesh);
         pieces.tiempo.mesh = m;
         pieces.tiempo.group.add(m);
       }
 
-      // MANO — pizarra gris (rama derecha)
+      // MANO — pizarra gris neutral con mano grabada (rama derecha)
       const manoParts = ['tripo_part_0','tripo_part_3','tripo_part_5']
         .map(n => partsMap[n]).filter(Boolean);
 
@@ -366,6 +450,7 @@ export function buildStonePieces(scene) {
           m.scale.set(SCALE, SCALE, SCALE);
           m.position.set(-0.55, -1.65, 0);
           m.userData = { pieceName: 'mano' };
+          m.visible = true;
           mg.add(m);
         });
         pieces.mano.group.remove(pieces.mano.mesh);
@@ -378,7 +463,11 @@ export function buildStonePieces(scene) {
     undefined,
     (err) => {
       console.warn('Piezas procedurales activas:', err);
-      onGlbReady(); // Mostrar igual con fallback
+      // Solo en caso de error, activar las geometrías procedurales
+      pieces.tierra.mesh.visible = true;
+      pieces.tiempo.mesh.visible = true;
+      pieces.mano.mesh.visible = true;
+      onGlbReady();
     }
   );
 

@@ -19,12 +19,13 @@ export class CameraRig {
     this.mouseTarget  = new THREE.Vector2(0, 0);
     this.mouseCurrent = new THREE.Vector2(0, 0);
 
-    // Posición base: ligeramente elevada para ver las piezas flotando
-    this.basePos    = new THREE.Vector3(0, 1.2, 8.2);
-    this.baseLookAt = new THREE.Vector3(0, 0.3, 0);
+    // Posición base cinemática: encuadra pedestal con sus relieves y piedras flotantes
+    this.basePos    = new THREE.Vector3(0, 0.20, 8.0);
+    this.baseLookAt = new THREE.Vector3(0, -0.25, 0);
     this.currentLookAt = this.baseLookAt.clone();
 
-    this.isParallaxEnabled = true;
+    // Parallax desactivado en la intro para que el pedestal solo gire 360° sobre su eje Y sin tambalearse
+    this.isParallaxEnabled = false;
     this.isTransitioning   = false;
 
     this.bindParallax();
@@ -35,21 +36,27 @@ export class CameraRig {
       if (!this.isParallaxEnabled) return;
       const nx = (e.clientX / window.innerWidth)  * 2 - 1;
       const ny = -(e.clientY / window.innerHeight) * 2 + 1;
-      this.mouseTarget.set(nx * 0.4, ny * 0.28);
+      this.mouseTarget.set(nx * 0.15, ny * 0.1);
     };
-    // Touch parallax para móvil
     this.onTouchMove = (e) => {
       if (!this.isParallaxEnabled || !e.touches[0]) return;
       const nx = (e.touches[0].clientX / window.innerWidth)  * 2 - 1;
       const ny = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
-      this.mouseTarget.set(nx * 0.25, ny * 0.18);
+      this.mouseTarget.set(nx * 0.1, ny * 0.08);
     };
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('touchmove', this.onTouchMove, { passive: true });
   }
 
   update() {
-    if (!this.isParallaxEnabled || this.isTransitioning) return;
+    if (!this.isParallaxEnabled || this.isTransitioning) {
+      // Posición fija y centrada con respecto al pedestal
+      this.camera.position.x = this.basePos.x;
+      this.camera.position.y = this.basePos.y;
+      this.camera.position.z = this.basePos.z;
+      this.camera.lookAt(this.currentLookAt);
+      return;
+    }
     this.mouseCurrent.lerp(this.mouseTarget, 0.05);
     this.camera.position.x = this.basePos.x + this.mouseCurrent.x;
     this.camera.position.y = this.basePos.y + this.mouseCurrent.y;
@@ -65,27 +72,24 @@ export class CameraRig {
 
     const tl = gsap.timeline({ onComplete: () => { if (onComplete) onComplete(); } });
 
-    // Retroceso suave + descenso leve para ver el símbolo completo sobre el pedestal
+    // Retroceso suave y centrado para contemplar el monolito ensamblado
     tl.to(this.camera.position, {
-      x: 0, y: 0.8, z: 7.0,
+      x: 0, y: 0.85, z: 7.2,
       duration: 1.8,
       ease: 'power2.out',
-      onUpdate: () => { this.camera.lookAt(0, 0.4, 0); }
+      onUpdate: () => { this.camera.lookAt(0, 0.35, 0); }
     });
 
     return tl;
   }
 
   /**
-   * Fly-Through — la cámara pasa por el HUECO INFERIOR del símbolo
+   * Fly-Through — la cámara pasa por el HUECO INFERIOR del logo (arco central)
    *
-   * El arco de la 'Y' (rocky_y.glb) tiene el hueco entre y ≈ -0.3 y y ≈ 0.4.
-   * La cámara baja, apunta hacia ese hueco y acaba cruzándolo en Z negativa.
-   *
-   * Trayectoria:
-   *   (0, 0.8, 7.0)  →  (0, -0.2, 3.5)  →  (0, -0.5, -0.5)  →  (0, -0.8, -6)
-   *
-   * El lookAt sigue el punto de fuga del hueco: (0, -0.4, -10)
+   * El arco que forman las ramas izquierda y derecha bajo la clave tiene su centro en:
+   * x = 0, y ≈ -0.35, z = 0.
+   * La cámara desciende a y = -0.35, apunta al horizonte detrás del arco y vuela
+   * en línea recta a través del orificio hacia el atardecer.
    */
   flyThrough(onMidpoint, onFinished) {
     this.isParallaxEnabled = false;
@@ -95,44 +99,44 @@ export class CameraRig {
 
     const tl = gsap.timeline();
 
-    // Fase 1: descenso y enfoque hacia el hueco inferior
+    // Fase 1: Descenso directo para alinearse con el hueco del arco
     tl.to(this.camera.position, {
       x: 0,
-      y: -0.2,  // Bajar para alinearse con el hueco entre las ramas
-      z: 3.0,
-      duration: 1.0,
-      ease: 'power2.in',
-      onUpdate: () => { this.camera.lookAt(0, -0.4, -5); }
+      y: -0.15,
+      z: 2.8,
+      duration: 1.1,
+      ease: 'power2.inOut',
+      onUpdate: () => { this.camera.lookAt(0, -0.15, -10); }
     }, 0);
 
-    // Fase 2: aceleración y cruce del umbral del arco
+    // Fase 2: Cruzar exactamente por el hueco inferior entre los pilares de piedra
     tl.to(this.camera.position, {
       x: 0,
-      y: -0.6,  // Continúa bajando — pasando por debajo del nudo central
-      z: -2.0,
+      y: -0.15,
+      z: -1.5,
       duration: 0.85,
-      ease: 'power3.in',
-      onUpdate: () => { this.camera.lookAt(0, -0.6, -12); }
-    }, 0.9);
+      ease: 'power2.in',
+      onUpdate: () => { this.camera.lookAt(0, -0.15, -15); }
+    }, 1.0);
 
-    // Flash dorado de portal a mitad del vuelo
-    tl.call(() => { if (onMidpoint) onMidpoint(); }, null, 1.35);
+    // Destello de portal justo al atravesar el umbral de piedra
+    tl.call(() => { if (onMidpoint) onMidpoint(); }, null, 1.45);
 
-    // Fase 3: salida al otro lado — desvanecimiento hacia la landing
+    // Fase 3: Salida triunfal hacia el paisaje de la landing
     tl.to(this.camera.position, {
       x: 0,
-      y: -1.2,
-      z: -7.0,
-      duration: 0.5,
+      y: -0.15,
+      z: -8.0,
+      duration: 0.6,
       ease: 'power2.out',
-      onUpdate: () => { this.camera.lookAt(0, -1.2, -15); }
-    }, 1.6);
+      onUpdate: () => { this.camera.lookAt(0, -0.15, -20); }
+    }, 1.8);
 
-    // Finalizar
+    // Finalizar transición
     tl.call(() => {
       this.isTransitioning = false;
       if (onFinished) onFinished();
-    }, null, 2.15);
+    }, null, 2.3);
 
     return tl;
   }
