@@ -19,9 +19,9 @@ export class CameraRig {
     this.mouseTarget  = new THREE.Vector2(0, 0);
     this.mouseCurrent = new THREE.Vector2(0, 0);
 
-    // Posición base cinemática: encuadra pedestal con piezas flotantes completamente visibles
-    this.basePos    = new THREE.Vector3(0, 0.20, 9.5);
-    this.baseLookAt = new THREE.Vector3(0, -0.60, 0);
+    // Posición base cinemática: encuadra pedestal con sus relieves y piedras flotantes
+    this.basePos    = new THREE.Vector3(0, 0.20, 8.0);
+    this.baseLookAt = new THREE.Vector3(0, -0.25, 0);
     this.currentLookAt = this.baseLookAt.clone();
 
     // Parallax desactivado en la intro para que el pedestal solo gire 360° sobre su eje Y sin tambalearse

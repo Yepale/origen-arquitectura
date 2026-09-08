@@ -42,12 +42,12 @@
    ══════════════════════════════════════════════════════════ */
 .intro-brand-center {
   position: absolute;
-  /* Posicionado justo bajo la base del pedestal 3D.
-     Con FOV=55° y cam-z=9.5, la base del drum proyecta a ~10vh desde abajo.
-     Usamos bottom:8vh para quedar a 1-2vh del borde inferior del tambor. */
-  bottom: 8vh;
+  /* Posicionado bajo la base del pedestal 3D restaurado */
+  bottom: 22vh;
   left: 50%;
-  transform: translateX(-50%);
+  /* Desplazamos un poco más a la izquierda (-54%) para contrarrestar
+     el peso óptico y el posible espacio vacío a la izquierda del logo PNG */
+  transform: translateX(-54%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -234,7 +234,7 @@
   .intro-ui { padding: 0; }
 
   .intro-brand-center {
-    bottom: 6vh;
+    bottom: 18vh;
   }
 
   .intro-brand-logo {
@@ -271,7 +271,7 @@
 /* Móviles pequeños (≤ 480px) */
 @media (max-width: 480px) {
   .intro-brand-center {
-    bottom: 4vh;
+    bottom: 14vh;
   }
 
   .intro-brand-logo {
@@ -292,7 +292,7 @@
 /* Landscape móvil — ajustar posición vertical */
 @media (max-height: 500px) and (orientation: landscape) {
   .intro-brand-center {
-    bottom: 3vh;
+    bottom: 6vh;
   }
 
   .intro-brand-logo {
