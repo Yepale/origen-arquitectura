@@ -43,14 +43,14 @@ export class SceneManager {
       }
     );
 
-    // Fallback de color mientras carga
-    this.scene.background = new THREE.Color(0x0d0d10);
-    this.scene.fog = new THREE.FogExp2(0x0d0d10, 0.04);
+    // Fallback de color mientras carga y niebla cálida de atardecer muy sutil
+    this.scene.background = new THREE.Color(0x18120e);
+    this.scene.fog = new THREE.Fog(0x2c1c14, 14, 50);
 
     // 2. Cámara cinemática (perspectiva arquitectónica)
     const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(42, aspect, 0.1, 100);
-    this.camera.position.set(0, 1.2, 8.2);
+    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 100);
+    this.camera.position.set(0, 1.1, 8.0);
     this.camera.lookAt(0, 0.2, 0);
 
     // 3. Renderer de alta fidelidad
@@ -65,7 +65,7 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.22;
 
     // 4. Iluminación arquitectónica cálida (Atardecer en la Sierra)
     this.setupLighting();
@@ -82,14 +82,14 @@ export class SceneManager {
   }
 
   setupLighting() {
-    // Luz ambiental fría/neutra de cielo vespertino
-    const ambientLight = new THREE.AmbientLight(0x282630, 1.2);
+    // Luz ambiental equilibrada para preservar sombras y textura natural
+    const ambientLight = new THREE.AmbientLight(0x3a322c, 1.5);
     this.scene.add(ambientLight);
     this.lights.ambient = ambientLight;
 
-    // Luz principal de atardecer rasante (cálida, sombras largas)
-    const sunLight = new THREE.DirectionalLight(0xffb570, 2.6);
-    sunLight.position.set(5.5, 4.5, 4.0);
+    // Luz principal rasante de atardecer en la Sierra (cálida dorada)
+    const sunLight = new THREE.DirectionalLight(0xffbe7a, 3.2);
+    sunLight.position.set(4.8, 4.2, 3.6);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
@@ -99,19 +99,19 @@ export class SceneManager {
     sunLight.shadow.camera.right = 6;
     sunLight.shadow.camera.top = 6;
     sunLight.shadow.camera.bottom = -6;
-    sunLight.shadow.bias = -0.0005;
+    sunLight.shadow.bias = -0.0004;
     this.scene.add(sunLight);
     this.lights.sun = sunLight;
 
-    // Luz de contra / perfilado escultórico (azulada suave)
-    const rimLight = new THREE.DirectionalLight(0x7a8ca8, 1.4);
-    rimLight.position.set(-6, 3.5, -4.5);
+    // Luz de contra / perfilado escultórico para recortar el relieve
+    const rimLight = new THREE.DirectionalLight(0x8da0bc, 1.6);
+    rimLight.position.set(-5.5, 3.2, -4.0);
     this.scene.add(rimLight);
     this.lights.rim = rimLight;
 
-    // Foco cálido en el pedestal (resplandor de cantería)
-    const pedestalGlow = new THREE.PointLight(0xe8aa55, 1.0, 7.0, 1.5);
-    pedestalGlow.position.set(0, -0.6, 0.4);
+    // Resplandor cálido proyectado sobre la mesa del pedestal
+    const pedestalGlow = new THREE.PointLight(0xffa844, 2.2, 6.5, 1.4);
+    pedestalGlow.position.set(0, -1.0, 0.6);
     this.scene.add(pedestalGlow);
     this.lights.pedestal = pedestalGlow;
   }

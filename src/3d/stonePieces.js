@@ -116,50 +116,51 @@ export function createStoneMaterials() {
 
   return {
     tierra: new THREE.MeshStandardMaterial({
-      color: 0xba6a50,
+      color: 0xcb7543, // Arenisca rodeno cálida y luminosa
       map: createStoneTexture('tierra'),
       bumpMap: bump,
-      bumpScale: 0.045,
-      roughness: 0.88,
-      metalness: 0.05
+      bumpScale: 0.05,
+      roughness: 0.86,
+      metalness: 0.04
     }),
     tiempo: new THREE.MeshStandardMaterial({
-      color: 0xd8cbb5,
+      color: 0xdecfae, // Caliza mineral crema dorada
       map: createStoneTexture('tiempo'),
       bumpMap: bump,
-      bumpScale: 0.04,
+      bumpScale: 0.042,
       roughness: 0.82,
-      metalness: 0.08
+      metalness: 0.06
     }),
     mano: new THREE.MeshStandardMaterial({
-      color: 0x5a5e66,
+      color: 0x666b74, // Pizarra labrada ancestral
       map: createStoneTexture('mano'),
       bumpMap: bump,
-      bumpScale: 0.05,
-      roughness: 0.85,
-      metalness: 0.12
+      bumpScale: 0.055,
+      roughness: 0.84,
+      metalness: 0.08
     }),
     bronce: new THREE.MeshStandardMaterial({
       color: 0xaa8238,
       map: createStoneTexture('bronce'),
       bumpMap: bump,
       bumpScale: 0.03,
-      roughness: 0.42,
-      metalness: 0.78
+      roughness: 0.45,
+      metalness: 0.75
     }),
     hierro: new THREE.MeshStandardMaterial({
-      color: 0x303034,
+      color: 0x38393d,
       map: createStoneTexture('hierro'),
       bumpMap: bump,
-      bumpScale: 0.045,
+      bumpScale: 0.04,
       roughness: 0.65,
-      metalness: 0.55
+      metalness: 0.8
     }),
-    targetGhost: new THREE.MeshBasicMaterial({
-      color: 0xe0c898,
-      wireframe: true,
+    targetGhost: new THREE.MeshStandardMaterial({
+      color: 0xb59868,
       transparent: true,
-      opacity: 0.22
+      opacity: 0.16,
+      wireframe: false,
+      roughness: 0.9
     }),
     goldGlow: new THREE.MeshBasicMaterial({
       color: 0xf5d070,
@@ -260,19 +261,19 @@ export function buildStonePieces(scene) {
     }
   };
 
-  // Posiciones de reposo inicial
+  // Posiciones de reposo inicial: Composición triangular con separación clara (TIEMPO arriba, TIERRA izquierda, MANO derecha)
   const initials = {
     tierra: {
-      pos: new THREE.Vector3(-3.4, 0.4, 0.8),
-      rot: new THREE.Euler(0.15, 0.4, -0.1)
+      pos: new THREE.Vector3(-2.6, 0.65, 0.35),
+      rot: new THREE.Euler(0.08, 0.22, -0.06)
     },
     tiempo: {
-      pos: new THREE.Vector3(0.1, 2.6, -1.4),
-      rot: new THREE.Euler(-0.35, 0.2, 0.25)
+      pos: new THREE.Vector3(0.0, 2.35, -0.2),
+      rot: new THREE.Euler(-0.14, 0.0, 0.0)
     },
     mano: {
-      pos: new THREE.Vector3(3.4, 0.2, 0.7),
-      rot: new THREE.Euler(0.2, -0.45, 0.15)
+      pos: new THREE.Vector3(2.6, 0.65, 0.35),
+      rot: new THREE.Euler(0.08, -0.22, 0.06)
     }
   };
 

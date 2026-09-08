@@ -29,72 +29,96 @@
 
     <!-- Interfaz de la intro -->
     <div id="intro-ui" class="intro-ui">
+      <!-- Tagline Superior Editorial (Imagen 2) -->
       <div class="intro-tagline">
         <span class="intro-tagline-line">ARQUITECTURA</span>
-        <span class="intro-tagline-divider">·</span>
         <span class="intro-tagline-line">PATRIMONIO</span>
-        <span class="intro-tagline-divider">·</span>
-        <span class="intro-tagline-line">FUTURO</span>
+        <span class="intro-tagline-line">MATERIA · TIEMPO</span>
+        <div class="intro-tagline-rule"></div>
       </div>
 
-      <div class="intro-headline">
-        <h1 id="intro-title">CONSTRUYE EL ORIGEN</h1>
-        <p id="intro-subtitle">ARRASTRA LAS PIEZAS PARA CONSTRUIR EL ORIGEN</p>
+      <!-- Guía Central Minimalista (Entre las 3 piezas flotantes) -->
+      <div class="intro-center-guide" id="intro-center-guide">
+        <div class="touch-gesture-wrap">
+          <svg class="touch-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+          <div class="touch-pulse"></div>
+        </div>
+        <p class="guide-text" id="intro-subtitle">
+          <span>ARRASTRA</span>
+          <span>LAS PIEZAS</span>
+          <span>PARA CONSTRUIR</span>
+          <span>EL ORIGEN</span>
+        </p>
       </div>
 
+      <!-- Líneas Guía Editoriales de las Piezas (Imagen 2) -->
       <div class="intro-labels">
-        <div class="piece-label piece-label--tierra" id="label-tierra">
-          <span class="label-name">TIERRA</span>
-          <span class="label-desc">RAÍCES · TRADICIÓN</span>
-        </div>
         <div class="piece-label piece-label--tiempo" id="label-tiempo">
-          <span class="label-name">TIEMPO</span>
-          <span class="label-desc">UNIÓN · EQUILIBRIO</span>
+          <div class="label-box">
+            <span class="label-name">TIEMPO</span>
+            <span class="label-desc">UNIÓN</span>
+            <span class="label-desc">EQUILIBRIO</span>
+          </div>
+          <div class="leader-line leader-line--tiempo">
+            <span class="leader-dot"></span>
+          </div>
         </div>
+
+        <div class="piece-label piece-label--tierra" id="label-tierra">
+          <div class="label-box">
+            <span class="label-name">TIERRA</span>
+            <span class="label-desc">RAÍCES</span>
+            <span class="label-desc">TRADICIÓN</span>
+          </div>
+          <div class="leader-line leader-line--tierra">
+            <span class="leader-dot"></span>
+          </div>
+        </div>
+
         <div class="piece-label piece-label--mano" id="label-mano">
-          <span class="label-name">MANO</span>
-          <span class="label-desc">OFICIO · FUTURO</span>
+          <div class="label-box">
+            <span class="label-name">MANO</span>
+            <span class="label-desc">OFICIO</span>
+            <span class="label-desc">FUTURO</span>
+          </div>
+          <div class="leader-line leader-line--mano">
+            <span class="leader-dot"></span>
+          </div>
         </div>
       </div>
 
-      <div class="intro-progress" id="intro-progress">
-        <div class="progress-item" id="progress-1">
-          <div class="progress-dot"></div>
-          <span>01</span>
+      <!-- Pie de Escena Bajo el Pedestal (Imagen 2) -->
+      <div class="intro-pedestal-footer">
+        <div class="pedestal-brand">
+          <h2 class="pedestal-brand-name">ORIGEN</h2>
+          <p class="pedestal-brand-sub">ARQUITECTURA QUE PERMANECE</p>
+          <div class="pedestal-divider"></div>
         </div>
-        <div class="progress-line"></div>
-        <div class="progress-item" id="progress-2">
-          <div class="progress-dot"></div>
-          <span>02</span>
-        </div>
-        <div class="progress-line"></div>
-        <div class="progress-item" id="progress-3">
-          <div class="progress-dot"></div>
-          <span>03</span>
+        <div class="pedestal-actions">
+          <button id="btn-skip" class="btn-comenzar" aria-label="Comenzar y explorar">
+            <span>COMENZAR</span>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div class="intro-bottom">
+      <!-- Control de Música Ambiental -->
+      <div class="intro-audio-ctrl">
         <button id="btn-soundtrack-toggle" class="btn-soundtrack" aria-label="Activar o silenciar música de fondo">
-          <svg class="icon-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="icon-sound-on" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
           <span id="soundtrack-status">MÚSICA</span>
         </button>
-        <button id="btn-skip" class="btn-skip" aria-label="Explorar directamente sin completar el puzzle">
-          EXPLORAR DIRECTAMENTE
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <p class="intro-hint" id="intro-hint">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M9 12c0 1.65 1.35 3 3 3s3-1.35 3-3V5c0-1.65-1.35-3-3-3S9 3.35 9 5v7zM5 12c0 3.87 3.13 7 7 7s7-3.13 7-7h-2c0 2.76-2.24 5-5 5s-5-2.24-5-5H5z" fill="currentColor"/>
-          </svg>
-          Arrastra las piezas
-        </p>
       </div>
     </div>
 
@@ -132,30 +156,34 @@
               <path d="M36 56 Q40 54 41 50" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
             </svg>
           </div>
-          <span class="logo-text">ORIGEN</span>
+          <div class="logo-text-block">
+            <span class="logo-text">ORIGEN</span>
+            <span class="logo-subtext">ESTUDIO DE ARQUITECTURA</span>
+          </div>
         </div>
 
         <nav class="header-nav" role="navigation" aria-label="Navegación principal">
+          <a href="#hero" class="nav-link">INICIO</a>
           <a href="#proyectos" class="nav-link">PROYECTOS</a>
           <a href="#filosofia" class="nav-link">FILOSOFÍA</a>
           <a href="#materiales" class="nav-link">MATERIA</a>
           <a href="#proceso" class="nav-link">PROCESO</a>
+          <a href="#estudio" class="nav-link">ESTUDIO</a>
           <a href="#contacto" class="nav-link">CONTACTO</a>
         </nav>
 
         <div class="header-actions">
-          <button id="header-soundtrack-toggle" class="btn-soundtrack-mini" aria-label="Activar o silenciar música">
-            <svg class="icon-sound-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-tag-phrase desktop-only">ARQUITECTURA QUE PERMANECE</div>
+          <button id="header-soundtrack-toggle" class="btn-soundtrack header-soundtrack" aria-label="Silenciar música">
+            <svg class="icon-sound-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
             </svg>
-            <span class="desktop-only">MÚSICA</span>
           </button>
           <button id="btn-revive-intro" class="btn-revive" aria-label="Revivir la experiencia de introducción 3D">
-            REVIVIR INTRO 3D
+            INTRO 3D
           </button>
-          <a href="#contacto" class="btn-cta" id="btn-cta-header">EMPIEZA TU PROYECTO</a>
         </div>
 
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Abrir menú de navegación" aria-expanded="false">
@@ -165,48 +193,66 @@
 
       <!-- Mobile nav -->
       <div class="mobile-nav" id="mobile-nav" role="dialog" aria-label="Menú de navegación móvil" aria-hidden="true">
+        <a href="#hero" class="mobile-nav-link">INICIO</a>
         <a href="#proyectos" class="mobile-nav-link">PROYECTOS</a>
         <a href="#filosofia" class="mobile-nav-link">FILOSOFÍA</a>
         <a href="#materiales" class="mobile-nav-link">MATERIA</a>
         <a href="#proceso" class="mobile-nav-link">PROCESO</a>
         <a href="#contacto" class="mobile-nav-link">CONTACTO</a>
-        <a href="#contacto" class="btn-cta mobile-nav-cta">EMPIEZA TU PROYECTO</a>
       </div>
     </header>
 
 
-    <!-- HERO -->
+    <!-- HERO (Imagen 5 de Referencia) -->
     <section class="hero-section" id="hero" aria-label="Sección principal">
-      <div class="hero-bg">
-        <div class="hero-canvas-container" id="hero-canvas-container">
-          <canvas id="hero-canvas" aria-hidden="true"></canvas>
-        </div>
+      <div class="hero-bg" id="hero-bg">
         <div class="hero-overlay"></div>
       </div>
       <div class="hero-content">
-        <div class="hero-eyebrow">
-          <span class="eyebrow-dot"></span>
-          TERUEL · SIERRA DE ALBARRACÍN · TERRIENTE
+        <div class="hero-brand-header">
+          <h1 class="hero-brand-name">ORIGEN</h1>
+          <p class="hero-brand-subtitle">ARQUITECTURA, PATRIMONIO Y FUTURO</p>
+          <div class="hero-gold-line"></div>
         </div>
-        <h2 class="hero-headline">
-          <span>CONSTRUIMOS</span>
-          <span class="headline-accent">SOBRE LO QUE</span>
-          <span>PERMANECE.</span>
+
+        <h2 class="hero-quote">
+          “Construimos sobre lo que el tiempo nos dejó.”
         </h2>
-        <p class="hero-body">Restauramos, reconstruimos y transformamos arquitectura tradicional<br class="desktop-br" /> incorporando soluciones contemporáneas sin perder su esencia.</p>
+
         <div class="hero-actions">
-          <a href="#proyectos" class="btn-primary" id="hero-cta-projects">
-            VER PROYECTOS
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <a href="#contacto" class="btn-hero-primary" id="hero-cta-descubrir">
+            DESCUBRIR ORIGEN
+            <span class="btn-arrow">→</span>
           </a>
-          <a href="#filosofia" class="btn-secondary" id="hero-cta-philosophy">NUESTRA FILOSOFÍA</a>
+          <a href="#proyectos" class="btn-hero-secondary" id="hero-cta-projects">
+            VER PROYECTOS
+          </a>
         </div>
       </div>
-      <div class="hero-scroll-indicator" aria-hidden="true">
-        <div class="scroll-line"></div>
-        <span>SCROLL</span>
+
+      <!-- Barra de Metadatos Inferior del Hero (Imagen 5 de referencia) -->
+      <div class="hero-bottom-bar">
+        <div class="hero-meta-geo">
+          <span>TERUEL</span>
+          <span class="meta-sep">·</span>
+          <span>SIERRA DE ALBARRACÍN</span>
+          <span class="meta-sep">·</span>
+          <span>MONTES UNIVERSALES</span>
+        </div>
+
+        <div class="hero-scroll-indicator" aria-hidden="true">
+          <span>SCROLL</span>
+          <div class="scroll-line"></div>
+        </div>
+
+        <div class="hero-meta-index">
+          <span class="meta-num">01</span>
+          <div class="meta-sub">
+            <span>PASADO</span>
+            <span>PRESENTE</span>
+            <span>FUTURO</span>
+          </div>
+        </div>
       </div>
     </section>
 

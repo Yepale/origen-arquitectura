@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { stoneAudio } from '../audio/stoneAudio.js';
 
 /**
@@ -25,8 +26,8 @@ export class InteractionController {
     this.dragOffset = new THREE.Vector3();
     this.initialPointerPos = new THREE.Vector2();
 
-    this.snapDistance = 1.35; // Distancia para iniciar atracción magnética
-    this.lockDistance = 0.75; // Distancia para encajar definitivamente
+    this.snapDistance = 1.45; // Distancia para iniciar atracción magnética
+    this.lockDistance = 0.85; // Distancia para encajar definitivamente
 
     this.lockedCount = 0;
     this.isCompleted = false;
@@ -99,6 +100,8 @@ export class InteractionController {
         this.selectedPiece = piece;
         this.isDragging = true;
         piece.isDragging = true;
+        gsap.killTweensOf(piece.group.position);
+        gsap.killTweensOf(piece.group.rotation);
 
         // Definir plano de arrastre paralelo a la cámara a la profundidad de la pieza
         const normal = new THREE.Vector3();
@@ -108,6 +111,13 @@ export class InteractionController {
         if (this.raycaster.ray.intersectPlane(this.dragPlane, this.planeIntersect)) {
           this.dragOffset.copy(piece.group.position).sub(this.planeIntersect);
         }
+
+        // Sensación táctil de alzar bloque de piedra pesado (ligero lift en Z)
+        gsap.to(piece.group.position, {
+          z: piece.group.position.z + 0.25,
+          duration: 0.18,
+          ease: 'power2.out'
+        });
 
         // Sonido de levantamiento de piedra
         stoneAudio.playPick();
@@ -152,16 +162,16 @@ export class InteractionController {
       const piece = this.selectedPiece;
       const distToTarget = targetCoord.distanceTo(piece.targetPos);
 
-      // Efecto de Imán Estructural (Magnetic Snap)
+      // Efecto de Imán Estructural (Magnetic Snap progresivo)
       if (distToTarget < this.snapDistance) {
-        // Atracción suave hacia el hueco de encaje
+        // Atracción con desaceleración hacia el hueco de encaje
         const factor = 1 - (distToTarget / this.snapDistance);
-        targetCoord.lerp(piece.targetPos, factor * 0.7);
+        targetCoord.lerp(piece.targetPos, factor * 0.72);
 
         // Orientación se alinea progresivamente con el encaje
-        piece.group.rotation.x = THREE.MathUtils.lerp(piece.group.rotation.x, piece.targetRot.x, factor * 0.5);
-        piece.group.rotation.y = THREE.MathUtils.lerp(piece.group.rotation.y, piece.targetRot.y, factor * 0.5);
-        piece.group.rotation.z = THREE.MathUtils.lerp(piece.group.rotation.z, piece.targetRot.z, factor * 0.5);
+        piece.group.rotation.x = THREE.MathUtils.lerp(piece.group.rotation.x, piece.targetRot.x, factor * 0.55);
+        piece.group.rotation.y = THREE.MathUtils.lerp(piece.group.rotation.y, piece.targetRot.y, factor * 0.55);
+        piece.group.rotation.z = THREE.MathUtils.lerp(piece.group.rotation.z, piece.targetRot.z, factor * 0.55);
 
         // Destacar guía fantasma
         if (piece.ghost) {
@@ -175,11 +185,12 @@ export class InteractionController {
       } else {
         piece.inMagnetZone = false;
         if (piece.ghost) {
-          piece.ghost.material.opacity = 0.22;
+          piece.ghost.material.opacity = 0.18;
         }
       }
 
-      piece.group.position.copy(targetCoord);
+      // Desplazamiento con leve inercia
+      piece.group.position.lerp(targetCoord, 0.45);
     }
   }
 
@@ -195,7 +206,7 @@ export class InteractionController {
     const distToTarget = piece.group.position.distanceTo(piece.targetPos);
 
     if (distToTarget < this.lockDistance || piece.inMagnetZone) {
-      // ENCAJE EXITOSO
+      // ENCAJE EXITOSO con microimpacto
       this.lockPiece(piece);
     } else {
       // RETORNO SUAVE AL ORIGEN (No encajó)
@@ -212,29 +223,45 @@ export class InteractionController {
     piece.isLocked = true;
     piece.inMagnetZone = false;
 
-    // Fijar posición y rotación exactas
-    piece.group.position.copy(piece.targetPos);
-    piece.group.rotation.copy(piece.targetRot);
+    // Desaceleración suave, alineación de ángulo y micro-impacto elástico (sin teleport instantáneo)
+    gsap.killTweensOf(piece.group.position);
+    gsap.killTweensOf(piece.group.rotation);
+
+    gsap.to(piece.group.position, {
+      x: piece.targetPos.x,
+      y: piece.targetPos.y,
+      z: piece.targetPos.z,
+      duration: 0.36,
+      ease: 'power2.out',
+      onComplete: () => {
+        // Micro-impacto de cantería pesada
+        gsap.to(piece.group.position, {
+          y: piece.targetPos.y - 0.032,
+          duration: 0.07,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power1.inOut'
+        });
+      }
+    });
+
+    gsap.to(piece.group.rotation, {
+      x: piece.targetRot.x,
+      y: piece.targetRot.y,
+      z: piece.targetRot.z,
+      duration: 0.36,
+      ease: 'power2.out'
+    });
 
     // Ocultar guía fantasma
     if (piece.ghost) {
       piece.ghost.visible = false;
     }
 
-    // Efecto de pulso dorado en la juntura
+    // Efecto de pulso dorado sutil en la junta
     if (piece.glowMesh) {
       piece.glowMesh.visible = true;
-      let glowOpacity = 0.75;
-      const fadeGlow = () => {
-        glowOpacity -= 0.03;
-        if (glowOpacity > 0) {
-          piece.glowMesh.material.opacity = glowOpacity;
-          requestAnimationFrame(fadeGlow);
-        } else {
-          piece.glowMesh.visible = false;
-        }
-      };
-      fadeGlow();
+      gsap.fromTo(piece.glowMesh.material, { opacity: 0.8 }, { opacity: 0, duration: 0.9, ease: 'power1.out', onComplete: () => { piece.glowMesh.visible = false; } });
     }
 
     // Sonido distintivo de cantería
@@ -263,10 +290,27 @@ export class InteractionController {
   }
 
   returnPieceToInitial(piece) {
-    // Animación suave de retorno usando interpolación en el bucle update
-    piece.isReturning = true;
+    gsap.killTweensOf(piece.group.position);
+    gsap.killTweensOf(piece.group.rotation);
+
+    gsap.to(piece.group.position, {
+      x: piece.initialPos.x,
+      y: piece.initialPos.y,
+      z: piece.initialPos.z,
+      duration: 0.55,
+      ease: 'power2.out'
+    });
+
+    gsap.to(piece.group.rotation, {
+      x: piece.initialRot.x,
+      y: piece.initialRot.y,
+      z: piece.initialRot.z,
+      duration: 0.55,
+      ease: 'power2.out'
+    });
+
     if (piece.ghost) {
-      piece.ghost.material.opacity = 0.22;
+      piece.ghost.material.opacity = 0.18;
     }
   }
 
