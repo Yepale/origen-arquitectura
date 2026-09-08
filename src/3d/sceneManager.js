@@ -27,13 +27,21 @@ export class SceneManager {
     
     // Cargar la textura de fondo panorámica generada
     const textureLoader = new THREE.TextureLoader();
-    const bgTexture = textureLoader.load('/assets/images/origen_panoramic_background.jpg', (texture) => {
-      // Ajustar mapping para que funcione como fondo esférico o plano
+    const applyTexture = (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.SRGBColorSpace;
       this.scene.background = texture;
       this.scene.environment = texture; // Útil para reflejos PBR en las piedras
-    });
+    };
+
+    textureLoader.load(
+      '/images/origen_panoramic_background.jpg',
+      applyTexture,
+      undefined,
+      () => {
+        textureLoader.load('/assets/images/origen_panoramic_background.jpg', applyTexture);
+      }
+    );
 
     // Fallback de color mientras carga
     this.scene.background = new THREE.Color(0x0d0d10);

@@ -228,6 +228,7 @@ export class MaterialViewer {
 
   animate() {
     requestAnimationFrame(this.animate.bind(this));
+    if (!this.renderer || !this.scene || !this.camera) return;
 
     if (this.symbolMesh) {
       if (!this.isPointerDown) {
