@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="description" content="ORIGEN — Estudio de Arquitectura en la Sierra de Albarracín, Teruel. Restauramos, reconstruimos y transformamos arquitectura tradicional incorporando soluciones contemporáneas sin perder su esencia." />
-  <meta name="keywords" content="arquitectura, restauración, Teruel, Albarracín, patrimonio, rehabilitación, piedra" />
-  <meta property="og:title" content="ORIGEN — Arquitectura y Tiempo" />
-  <meta property="og:description" content="Lo antiguo no se reemplaza. Se entiende, se reconstruye y evoluciona." />
+  <meta name="description" content="ORIGEN — Estudio de Arquitectura en la Sierra de Albarracín, Teruel." />
+  <meta name="theme-color" content="#0f0e0d" />
   <title>ORIGEN — Arquitectura y Tiempo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,10 +18,15 @@
   <div id="intro-experience" class="intro-experience">
     <canvas id="main-canvas"></canvas>
     <div id="intro-ui" class="intro-ui">
+      <div class="intro-season-control season-control" aria-label="Seleccionar estación">
+        <button type="button" data-season="winter" aria-label="Invierno">❄</button>
+        <button type="button" data-season="summer" aria-label="Verano">☼</button>
+        <span class="season-tooltip">ESTACIÓN</span>
+      </div>
       <div class="intro-audio-ctrl">
-        <button id="btn-soundtrack-toggle" class="btn-soundtrack" aria-label="Activar o silenciar música de fondo" aria-pressed="false">
+        <button id="btn-soundtrack-toggle" class="btn-soundtrack" aria-label="Activar o silenciar música" aria-pressed="false">
           <svg class="icon-sound-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-          <svg class="icon-sound-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+          <svg class="icon-sound-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 11 5"></polygon></svg>
         </button>
       </div>
     </div>
@@ -40,32 +43,32 @@
         </nav>
         <div class="header-actions">
           <div class="header-tag-phrase desktop-only">ARQUITECTURA QUE PERMANECE</div>
-          <button id="header-soundtrack-toggle" class="btn-soundtrack header-soundtrack" aria-label="Silenciar música" aria-pressed="false"><svg class="icon-sound-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><svg class="icon-sound-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg></button>
+          <div class="landing-season-control season-control" aria-label="Seleccionar estación">
+            <button type="button" data-season="winter" aria-label="Invierno">❄</button>
+            <button type="button" data-season="summer" aria-label="Verano">☼</button>
+            <span class="season-tooltip">ESTACIÓN</span>
+          </div>
+          <button id="header-soundtrack-toggle" class="btn-soundtrack header-soundtrack" aria-label="Silenciar música" aria-pressed="false"><svg class="icon-sound-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg><svg class="icon-sound-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg></button>
           <button id="btn-revive-intro" class="btn-revive" aria-label="Revivir la experiencia de introducción 3D">INTRO 3D</button>
         </div>
-        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Abrir menú de navegación" aria-expanded="false"><span></span><span></span><span></span></button>
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Abrir menú" aria-expanded="false"><span></span><span></span><span></span></button>
       </div>
-      <div class="mobile-nav" id="mobile-nav" role="dialog" aria-label="Menú de navegación móvil" aria-hidden="true">
+      <div class="mobile-nav" id="mobile-nav" role="dialog" aria-label="Menú móvil" aria-hidden="true">
+        <div class="mobile-season-row">
+          <span>ESTACIÓN</span>
+          <div class="season-control mobile-season-control"><button type="button" data-season="winter" aria-label="Invierno">❄</button><button type="button" data-season="summer" aria-label="Verano">☼</button></div>
+        </div>
         <a href="#hero" class="mobile-nav-link">INICIO</a><a href="#proyectos" class="mobile-nav-link">PROYECTOS</a><a href="#filosofia" class="mobile-nav-link">FILOSOFÍA</a><a href="#materiales" class="mobile-nav-link">MATERIA</a><a href="#proceso" class="mobile-nav-link">PROCESO</a><a href="#contacto" class="mobile-nav-link">CONTACTO</a>
       </div>
     </header>
-
     <section class="hero-section" id="hero" aria-label="Sección principal">
       <div class="hero-bg" id="hero-bg"><div class="hero-overlay"></div></div>
-      <div class="hero-content">
-        <div class="hero-brand-header"><h1 class="hero-brand-name">ORIGEN</h1><p class="hero-brand-subtitle">ARQUITECTURA, PATRIMONIO Y FUTURO</p><div class="hero-gold-line"></div></div>
-        <h2 class="hero-quote">“Construimos sobre lo que el tiempo nos dejó.”</h2>
-        <div class="hero-actions"><a href="#contacto" class="btn-hero-primary" id="hero-cta-descubrir">DESCUBRIR ORIGEN <span class="btn-arrow">→</span></a><a href="#proyectos" class="btn-hero-secondary" id="hero-cta-projects">VER PROYECTOS</a></div>
-      </div>
+      <div class="hero-content"><div class="hero-brand-header"><h1 class="hero-brand-name">ORIGEN</h1><p class="hero-brand-subtitle">ARQUITECTURA, PATRIMONIO Y FUTURO</p><div class="hero-gold-line"></div></div><h2 class="hero-quote">“Construimos sobre lo que el tiempo nos dejó.”</h2><div class="hero-actions"><a href="#contacto" class="btn-hero-primary" id="hero-cta-descubrir">DESCUBRIR ORIGEN <span class="btn-arrow">→</span></a><a href="#proyectos" class="btn-hero-secondary" id="hero-cta-projects">VER PROYECTOS</a></div></div>
       <div class="hero-bottom-bar"><div class="hero-meta-geo"><span>TERUEL</span><span class="meta-sep">·</span><span>SIERRA DE ALBARRACÍN</span><span class="meta-sep">·</span><span>TERRIENTE</span></div><div class="hero-scroll-indicator" aria-hidden="true"><span>SCROLL</span><div class="scroll-line"></div></div><div class="hero-meta-index"><span class="meta-num">01</span><div class="meta-sub"><span>PASADO</span><span>PRESENTE</span><span>FUTURO</span></div></div></div>
     </section>
-
-    <section class="viewer-section" id="proceso" aria-label="Visor 3D del símbolo ORIGEN"><div class="viewer-inner"><div class="viewer-canvas-wrap"><canvas id="viewer-canvas" aria-label="Símbolo 3D interactivo de ORIGEN, arrastra para rotar"></canvas><div class="viewer-hint" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 12c0 1.65 1.35 3 3 3s3-1.35 3-3V5c0-1.65-1.35-3-3-3S9 3.35 9 5v7z" fill="currentColor"/><path d="M5 12c0 3.87 3.13 7 7 7s7-3.13 7-7h-2c0 2.76-2.24 5-5 5s-5-2.24-5-5H5z" fill="currentColor"/></svg>Arrastra para rotar</div></div><div class="viewer-controls"><div class="viewer-header"><span class="section-label">EL SÍMBOLO</span><h2 class="viewer-title">Tres elementos.<br/>Una estructura.</h2><p class="viewer-desc">El símbolo de ORIGEN nace de la unión de tres dovelas: la materia de la tierra, la permanencia del tiempo y la transformación de la mano.</p></div><div class="material-selector"><p class="selector-label">ACABADO</p><div class="material-buttons"><button class="material-btn active" data-material="caliza" id="mat-caliza" aria-pressed="true"><div class="material-swatch" style="--swatch-color:#D4C5A9"></div>CALIZA</button><button class="material-btn" data-material="bronce" id="mat-bronce" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#8B6914"></div>BRONCE</button><button class="material-btn" data-material="pizarra" id="mat-pizarra" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#4A4A52"></div>PIZARRA</button><button class="material-btn" data-material="hierro" id="mat-hierro" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#2C2C2C"></div>HIERRO</button></div></div></div></div></section>
-
-    <section class="filosofia-section" id="filosofia" aria-label="Filosofía de ORIGEN"><div class="section-container"><div class="filosofia-header"><span class="section-label">FILOSOFÍA</span><h2 class="filosofia-title">Lo antiguo no se reemplaza.<br/>Se entiende, se reconstruye y evoluciona.</h2></div><p class="filosofia-quote">«Trabajamos con la arquitectura existente como punto de partida, combinando técnicas tradicionales, materiales nobles y soluciones contemporáneas.»</p><div class="filosofia-triad"><article class="triad-card triad-card--tierra" id="triad-tierra"><h3 class="triad-name">TIERRA</h3><p class="triad-sub">La materia.</p><p class="triad-text">La piedra, la tierra y la cal son los protagonistas. Materiales que han resistido siglos y llevan en su interior la memoria del lugar.</p></article><article class="triad-card triad-card--tiempo" id="triad-tiempo"><h3 class="triad-name">TIEMPO</h3><p class="triad-sub">La permanencia.</p><p class="triad-text">Respetamos las huellas del tiempo y recuperamos aquello que todavía tiene valor arquitectónico.</p></article><article class="triad-card triad-card--mano" id="triad-mano"><h3 class="triad-name">MANO</h3><p class="triad-sub">La transformación.</p><p class="triad-text">El oficio convierte materia y memoria en espacios preparados para el futuro.</p></article></div></div></section>
-
+    <section class="viewer-section" id="proceso" aria-label="Visor 3D del símbolo ORIGEN"><div class="viewer-inner"><div class="viewer-canvas-wrap"><canvas id="viewer-canvas" aria-label="Símbolo 3D interactivo de ORIGEN"></canvas><div class="viewer-hint" aria-hidden="true">Arrastra para rotar</div></div><div class="viewer-controls"><div class="viewer-header"><span class="section-label">EL SÍMBOLO</span><h2 class="viewer-title">Tres elementos.<br/>Una estructura.</h2><p class="viewer-desc">El símbolo de ORIGEN nace de la unión de tres elementos: materia, permanencia y transformación.</p></div><div class="material-selector"><p class="selector-label">ACABADO</p><div class="material-buttons"><button class="material-btn active" data-material="caliza" id="mat-caliza" aria-pressed="true"><div class="material-swatch" style="--swatch-color:#D4C5A9"></div>CALIZA</button><button class="material-btn" data-material="bronce" id="mat-bronce" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#8B6914"></div>BRONCE</button><button class="material-btn" data-material="pizarra" id="mat-pizarra" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#4A4A52"></div>PIZARRA</button><button class="material-btn" data-material="hierro" id="mat-hierro" aria-pressed="false"><div class="material-swatch" style="--swatch-color:#2C2C2C"></div>HIERRO</button></div></div></div></div></section>
+    <section class="filosofia-section" id="filosofia" aria-label="Filosofía de ORIGEN"><div class="section-container"><div class="filosofia-header"><span class="section-label">FILOSOFÍA</span><h2 class="filosofia-title">Lo antiguo no se reemplaza.<br/>Se entiende, se reconstruye y evoluciona.</h2></div><p class="filosofia-quote">«Trabajamos con la arquitectura existente como punto de partida, combinando técnicas tradicionales, materiales nobles y soluciones contemporáneas.»</p><div class="filosofia-triad"><article class="triad-card triad-card--tierra"><h3 class="triad-name">TIERRA</h3><p class="triad-sub">La materia.</p><p class="triad-text">La piedra, la tierra y la cal son los protagonistas.</p></article><article class="triad-card triad-card--tiempo"><h3 class="triad-name">TIEMPO</h3><p class="triad-sub">La permanencia.</p><p class="triad-text">Respetamos las huellas del tiempo y recuperamos aquello que todavía tiene valor arquitectónico.</p></article><article class="triad-card triad-card--mano"><h3 class="triad-name">MANO</h3><p class="triad-sub">La transformación.</p><p class="triad-text">El oficio convierte materia y memoria en espacios preparados para el futuro.</p></article></div></div></section>
     <section class="contact-section" id="contacto" aria-label="Contacto"><div class="section-container"><span class="section-label">CONTACTO</span><h2 class="contact-title">Hablemos de tu próximo proyecto.</h2><form id="contact-form" class="contact-form"><input type="text" name="nombre" placeholder="NOMBRE" required><input type="email" name="email" placeholder="EMAIL" required><textarea name="mensaje" placeholder="CUÉNTANOS EL PROYECTO" rows="5" required></textarea><button type="submit" id="btn-submit-form" class="btn-primary">ENVIAR MENSAJE</button></form></div></section>
-
     <footer class="site-footer"><div class="section-container"><p>© ORIGEN — Estudio de Arquitectura · Sierra de Albarracín · Teruel</p></div></footer>
   </div>
   <script type="module" src="/src/main.js"></script>
