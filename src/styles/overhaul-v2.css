@@ -1,0 +1,10 @@
+/* ORIGEN v2 visual layer — overrides only, preserves existing landing sections */
+.landing-page .hero-bg{background-image:url('/images/origen_panoramic_background.jpg')!important;background-position:center!important}
+.landing-page .viewer-section{background:linear-gradient(180deg,#12100e,#17130f)!important}
+.intro-experience .intro-brand-center{display:none!important}
+#main-canvas{opacity:1!important}
+
+@media (min-width:769px){
+  .landing-page .hero-brand-name{font-size:clamp(4rem,8vw,7rem);letter-spacing:.12em}
+  .landing-page .hero-quote{font-size:clamp(1.35rem,2.2vw,2rem)}
+}
