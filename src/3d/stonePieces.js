@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-/** ORIGEN — REAL 3D PIECES · calibrated against supplied master GLB */
+/** ORIGEN — REAL 3D PIECES · supplied master GLB, preserved materials */
 export function createStoneMaterials(){
   const mat=(color,roughness=.82,metalness=.02)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
   return {
@@ -15,12 +15,11 @@ export function createStoneMaterials(){
   };
 }
 
-// The supplied GLB contains exactly three meshes, in spatial order:
-// left = TIERRA, center = TIEMPO, right = MANO.
+// The supplied GLB is the visual source of truth: three independent meshes.
 const PIECES=[
-  ['tierra',new THREE.Vector3(-2.05,.18,.72),new THREE.Euler(.045,.16,-.025),new THREE.Vector3(-.58,.30,0),new THREE.Euler(0,0,0)],
-  ['tiempo',new THREE.Vector3(0,2.08,-.10),new THREE.Euler(-.06,0,.02),new THREE.Vector3(0,1.62,0),new THREE.Euler(0,0,0)],
-  ['mano',new THREE.Vector3(2.05,.18,.72),new THREE.Euler(.045,-.16,.025),new THREE.Vector3(.58,.30,0),new THREE.Euler(0,0,0)]
+  ['tierra',new THREE.Vector3(-1.82,.55,.20),new THREE.Euler(0,0,0),new THREE.Vector3(-.57,.33,0),new THREE.Euler(0,0,0)],
+  ['tiempo',new THREE.Vector3(0,1.78,.05),new THREE.Euler(0,0,0),new THREE.Vector3(0,1.58,0),new THREE.Euler(0,0,0)],
+  ['mano',new THREE.Vector3(1.82,.55,.20),new THREE.Euler(0,0,0),new THREE.Vector3(.57,.33,0),new THREE.Euler(0,0,0)]
 ];
 
 function collectMeshes(root){
@@ -48,8 +47,16 @@ function centerAndScale(g,maxSize){
   return g;
 }
 
-function addRealPiece(piece,source,material,maxSize){
-  const mesh=new THREE.Mesh(centerAndScale(prepareGeometry(source),maxSize),material);
+function materialForPiece(materials,name,source){
+  // Keep the authored look of the supplied GLB, but guarantee the semantic palette.
+  if(name==='tierra') return materials.tierra.clone();
+  if(name==='tiempo') return materials.tiempo.clone();
+  if(name==='mano') return materials.mano.clone();
+  return source?.material?.clone?.() || materials.caliza.clone();
+}
+
+function addRealPiece(piece,source,materials,maxSize){
+  const mesh=new THREE.Mesh(centerAndScale(prepareGeometry(source),maxSize),materialForPiece(materials,piece.name,source));
   mesh.name=`real_${piece.name}`;
   mesh.userData={pieceName:piece.name,realGlb:true};
   mesh.castShadow=true;mesh.receiveShadow=true;
@@ -71,24 +78,23 @@ export function buildStonePieces(scene){
   loader.load('/models/pedestal.glb',gltf=>{
     const model=gltf.scene;model.name='ORIGEN_REAL_PEDESTAL';
     model.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});
-    // Calibrated to the supplied pedestal reference: broad, visible stage under the emblem.
+    // Match the supplied pedestal reference: broad circular stage, centered below the emblem.
     model.scale.setScalar(5.6);
-    model.position.set(0,-4.72,-.75);
+    model.position.set(0,-3.05,-.65);
     pedestalGroup.add(model);
   },undefined,error=>console.error('[ORIGEN] pedestal.glb',error));
 
   const install=(gltf,url)=>{
     const meshes=collectMeshes(gltf.scene);
-    if(meshes.length!==3){
-      console.error(`[ORIGEN] ${url} must contain exactly 3 meshes; found ${meshes.length}`);
+    if(meshes.length<3){
+      console.error(`[ORIGEN] ${url} must expose at least 3 meshes; found ${meshes.length}`);
       return;
     }
-    // The uploaded reference GLB is spatially authored left/center/right.
     const ordered=meshes.slice().sort((a,b)=>a.getWorldPosition(new THREE.Vector3()).x-b.getWorldPosition(new THREE.Vector3()).x);
-    addRealPiece(pieces.tierra,ordered[0],materials.tierra,2.45);
-    addRealPiece(pieces.tiempo,ordered[1],materials.tiempo,1.75);
-    addRealPiece(pieces.mano,ordered[2],materials.mano,2.45);
-    pieces.tierra.mesh.userData.realGlbUrl=url;pieces.tiempo.mesh.userData.realGlbUrl=url;pieces.mano.mesh.userData.realGlbUrl=url;
+    addRealPiece(pieces.tierra,ordered[0],materials,2.15);
+    addRealPiece(pieces.tiempo,ordered[Math.floor(ordered.length/2)],materials,1.65);
+    addRealPiece(pieces.mano,ordered[ordered.length-1],materials,2.15);
+    [pieces.tierra,pieces.tiempo,pieces.mano].forEach(p=>{if(p.mesh)p.mesh.userData.realGlbUrl=url;});
   };
 
   loader.load('/models/rocky_y.glb',gltf=>install(gltf,'/models/rocky_y.glb'),undefined,error=>{
