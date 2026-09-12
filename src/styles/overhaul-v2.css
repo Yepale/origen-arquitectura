@@ -1,12 +1,13 @@
-/* ORIGEN v2.3 — final visual hierarchy
-   Hero is the landing. Viewer follows it. No override may replace the seasonal hero image.
-*/
+/* ORIGEN v2.4 — visual master override */
 .landing-page .hero-bg{background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important}
-.landing-page .viewer-section{background:radial-gradient(circle at 25% 15%,rgba(201,168,108,.045),transparent 28%),linear-gradient(180deg,#12100e 0%,#171410 100%)!important}
+.landing-page .viewer-section{background:linear-gradient(180deg,#12100e 0%,#171410 100%)!important}
 .intro-experience .intro-brand-center{display:none!important}
 #main-canvas{opacity:1!important}
-
 @media (min-width:769px){
-  .landing-page .hero-brand-name{font-size:clamp(4rem,8vw,7rem);letter-spacing:.12em}
-  .landing-page .hero-quote{font-size:clamp(1.35rem,2.2vw,2rem)}
+  .landing-page .hero-section{min-height:100vh;height:100vh}
+  .landing-page .hero-brand-name{font-size:clamp(4.2rem,8.6vw,7.6rem);letter-spacing:.1em}
+  .landing-page .hero-quote{font-size:clamp(1.35rem,2.15vw,2rem)}
+}
+@media (max-width:768px){
+  .landing-page .hero-section{min-height:100svh;height:100svh}
 }
