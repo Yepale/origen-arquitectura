@@ -7,16 +7,16 @@ export const SEASONS = {
     key: 'winter',
     label: 'INVIERNO',
     icon: '❄',
-    desktopHero: '/images/origen_panoramic_winter_16x9.jpg',
-    mobileHero: '/images/origen_panoramic_winter_9x16.jpg',
+    desktopHero: '/images/origen_panoramic_winter_16x9.png',
+    mobileHero: '/images/origen_panoramic_winter_9x16.png',
     bodyClass: 'season-winter'
   },
   summer: {
     key: 'summer',
     label: 'VERANO',
     icon: '☼',
-    desktopHero: '/images/origen_panoramic_summer_16x9.jpg',
-    mobileHero: '/images/origen_panoramic_summer_9x16.jpg',
+    desktopHero: '/images/origen_panoramic_summer_16x9.png',
+    mobileHero: '/images/origen_panoramic_summer_9x16.png',
     bodyClass: 'season-summer'
   }
 };
@@ -47,7 +47,6 @@ export class SeasonController {
 
     this.applyLandingBackground(key, animate);
     this.sceneManager?.setSeason?.(key, { animate });
-
     this.listeners.forEach(listener => listener(SEASONS[key], SEASONS[previous]));
     return true;
   }
@@ -74,5 +73,6 @@ export class SeasonController {
     document.body.classList.add(this.season.bodyClass);
     document.documentElement.dataset.season = this.current;
     this.applyLandingBackground(this.current, false);
+    this.sceneManager?.setSeason?.(this.current, { animate: false });
   }
 }
