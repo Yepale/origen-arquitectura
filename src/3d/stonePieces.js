@@ -24,8 +24,11 @@ function collectMeshes(root){
   return meshes.sort((a,b)=>b.geometry.getAttribute('position').count-a.geometry.getAttribute('position').count);
 }
 
-function findMesh(meshes,key){
-  return meshes.find(mesh=>`${mesh.name||''} ${mesh.parent?.name||''}`.toLowerCase().includes(key))||null;
+function findNamedMesh(meshes, keys){
+  return meshes.find(mesh=>{
+    const label=`${mesh.name||''} ${mesh.parent?.name||''}`.toLowerCase();
+    return keys.some(key=>label.includes(key));
+  })||null;
 }
 
 function bakeGeometry(source){
@@ -50,7 +53,17 @@ function normalizeGeometry(geometry,maxSize){
 }
 
 function cloneMaterial(material){
-  return Array.isArray(material)?material.map(m=>m?.clone?.()||m):material?.clone?.()||material;
+  if(Array.isArray(material))return material.map(m=>m?.clone?.()||m);
+  return material?.clone?.()||material;
+}
+
+function fitObjectToGroup(group, maxSize){
+  const box=new THREE.Box3().setFromObject(group);
+  const size=box.getSize(new THREE.Vector3());
+  const scale=maxSize/Math.max(size.x,size.y,size.z,.001);
+  group.scale.multiplyScalar(scale);
+  const center=box.getCenter(new THREE.Vector3());
+  group.position.sub(center.multiplyScalar(scale));
 }
 
 export function buildStonePieces(scene){
@@ -76,7 +89,8 @@ export function buildStonePieces(scene){
   scene.add(pedestalGroup);
 
   const loader=new GLTFLoader();
-  let pedestalReady=false,symbolReady=false;
+  let pedestalReady=false;
+  let symbolReady=false;
   const reveal=()=>{
     if(!pedestalReady||!symbolReady)return;
     symbolGroup.visible=true;
@@ -88,63 +102,87 @@ export function buildStonePieces(scene){
   loader.load('/models/pedestal.glb',gltf=>{
     const model=gltf.scene;
     model.name='ORIGEN_REAL_PEDESTAL';
-    model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}});
+    model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=true;}});
     model.scale.setScalar(1.28);
     model.position.set(0,-1.56,0);
     pedestalGroup.add(model);
-    pedestalReady=true;reveal();
-  },undefined,error=>{console.error('[ORIGEN] pedestal.glb failed',error);pedestalReady=true;reveal();});
+    pedestalReady=true;
+    reveal();
+  },undefined,error=>{
+    console.error('[ORIGEN] pedestal.glb failed',error);
+    pedestalReady=true;
+    reveal();
+  });
 
   const installRealSymbol=(gltf,sourceUrl)=>{
     const root=gltf.scene;
     const meshes=collectMeshes(root);
-    if(!meshes.length){console.error(`[ORIGEN] no real meshes in ${sourceUrl}`);symbolReady=true;reveal();return;}
+    if(!meshes.length){
+      console.error(`[ORIGEN] no real meshes in ${sourceUrl}`);
+      symbolReady=true;
+      reveal();
+      return;
+    }
 
+    const aliases={
+      tierra:['tierra','terra','left'],
+      tiempo:['tiempo','time','top','clave'],
+      mano:['mano','hand','right']
+    };
     const used=new Set();
     const assigned=PIECES.map(([name])=>{
-      const mesh=findMesh(meshes,name);
+      const mesh=findNamedMesh(meshes,aliases[name]);
       if(mesh&&!used.has(mesh)){used.add(mesh);return mesh;}
       return null;
     });
 
-    // Generic mesh names: use the actual GLB mesh objects directly, never cut geometry.
     const remaining=meshes.filter(mesh=>!used.has(mesh));
     assigned.forEach((mesh,index)=>{if(!mesh&&remaining.length)assigned[index]=remaining.shift();});
 
     if(assigned.some(mesh=>!mesh)){
-      console.error('[ORIGEN] GLB must contain three independently selectable meshes; no procedural fallback is used.');
-      symbolReady=true;reveal();
+      console.error('[ORIGEN] symbol GLB must expose 3 independent meshes. No procedural fallback.');
+      symbolReady=true;
+      reveal();
       return;
     }
 
     PIECES.forEach(([name,, ,targetPos,targetRot],index)=>{
       const piece=pieces[name];
       const source=assigned[index];
-      const geometry=normalizeGeometry(bakeGeometry(source),name==='tiempo'?2.65:3.15);
+      const geometry=normalizeGeometry(bakeGeometry(source),name==='tiempo'?2.55:2.95);
       const mesh=new THREE.Mesh(geometry,cloneMaterial(source.material));
       mesh.name=`real_${name}`;
       mesh.userData.pieceName=name;
       mesh.userData.realGlb=sourceUrl;
-      mesh.castShadow=true;mesh.receiveShadow=true;
-      piece.group.add(mesh);piece.mesh=mesh;
+      mesh.castShadow=true;
+      mesh.receiveShadow=true;
+      mesh.frustumCulled=true;
+      piece.group.add(mesh);
+      piece.mesh=mesh;
 
       const glow=new THREE.Mesh(geometry.clone(),new THREE.MeshBasicMaterial({color:0xffcf72,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
-      glow.name=`glow_${name}`;glow.scale.setScalar(1.012);glow.visible=false;
-      piece.group.add(glow);piece.glowMesh=glow;
+      glow.name=`glow_${name}`;
+      glow.scale.setScalar(1.012);
+      glow.visible=false;
+      piece.group.add(glow);
+      piece.glowMesh=glow;
     });
 
-    symbolReady=true;reveal();
+    symbolReady=true;
+    reveal();
   };
 
   loader.load('/models/rocky_y.glb',gltf=>installRealSymbol(gltf,'rocky_y.glb'),undefined,error=>{
     console.warn('[ORIGEN] rocky_y.glb unavailable; trying stone_y.glb',error);
     loader.load('/models/stone_y.glb',gltf=>installRealSymbol(gltf,'stone_y.glb'),undefined,fallbackError=>{
-      console.error('[ORIGEN] symbol GLBs failed',fallbackError);symbolReady=true;reveal();
+      console.error('[ORIGEN] symbol GLBs failed',fallbackError);
+      symbolReady=true;
+      reveal();
     });
   });
 
   symbolGroup.userData.pieces=pieces;
   symbolGroup.userData.targets=Object.fromEntries(PIECES.map(([name,,,target])=>[name,target.clone()]));
   symbolGroup.userData.introInitials=Object.fromEntries(PIECES.map(([name,initialPos,initialRot])=>[name,{pos:initialPos.clone(),rot:initialRot.clone()}]));
-  return {pieces,pedestalGroup,symbolGroup};
+  return{pieces,pedestalGroup,symbolGroup};
 }
