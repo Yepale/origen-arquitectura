@@ -1,170 +1,103 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-/** ORIGEN — real GLB sculpture, calibrated to the supplied composition. */
+/** ORIGEN — REAL 3D PIECES · calibrated against supplied master GLB */
 export function createStoneMaterials(){
-  const material = (color, roughness = .82, metalness = .02) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  const mat=(color,roughness=.82,metalness=.02)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
   return {
-    tierra: material(0xb97743, .9, .01),
-    tiempo: material(0xd9c7a9, .86, .01),
-    mano: material(0x59616b, .88, .03),
-    caliza: material(0xd4c5a9, .84, .02),
-    bronce: material(0x8b6914, .38, .72),
-    pizarra: material(0x4a4a52, .9, .04),
-    hierro: material(0x2c2c2c, .7, .65)
+    tierra:mat(0xb86b32,.88,.01),
+    tiempo:mat(0xd7c09a,.82,.01),
+    mano:mat(0x4b535d,.88,.03),
+    caliza:mat(0xd4c5a9,.84,.02),
+    bronce:mat(0x8b6914,.38,.72),
+    pizarra:mat(0x4a4a52,.9,.04),
+    hierro:mat(0x2c2c2c,.7,.65)
   };
 }
 
-const PIECES = [
-  ['tierra', new THREE.Vector3(-2.18, .18, .72), new THREE.Euler(.08, .28, -.08), new THREE.Vector3(-.62, .28, 0), new THREE.Euler(0,0,0)],
-  ['tiempo', new THREE.Vector3(0, 2.35, -.28), new THREE.Euler(-.12, .01, .04), new THREE.Vector3(0, 1.68, 0), new THREE.Euler(0,0,0)],
-  ['mano', new THREE.Vector3(2.18, .18, .72), new THREE.Euler(.08, -.28, .08), new THREE.Vector3(.62, .28, 0), new THREE.Euler(0,0,0)]
+// The supplied GLB contains exactly three meshes, in spatial order:
+// left = TIERRA, center = TIEMPO, right = MANO.
+const PIECES=[
+  ['tierra',new THREE.Vector3(-2.05,.18,.72),new THREE.Euler(.045,.16,-.025),new THREE.Vector3(-.58,.30,0),new THREE.Euler(0,0,0)],
+  ['tiempo',new THREE.Vector3(0,2.08,-.10),new THREE.Euler(-.06,0,.02),new THREE.Vector3(0,1.62,0),new THREE.Euler(0,0,0)],
+  ['mano',new THREE.Vector3(2.05,.18,.72),new THREE.Euler(.045,-.16,.025),new THREE.Vector3(.58,.30,0),new THREE.Euler(0,0,0)]
 ];
 
 function collectMeshes(root){
   const meshes=[];
   root.updateMatrixWorld(true);
-  root.traverse(node=>{ if(node.isMesh && node.geometry) meshes.push(node); });
-  return meshes.sort((a,b)=>b.geometry.getAttribute('position').count-a.geometry.getAttribute('position').count);
-}
-
-function findMesh(meshes,key){
-  return meshes.find(mesh => `${mesh.name||''} ${mesh.parent?.name||''}`.toLowerCase().includes(key)) || null;
+  root.traverse(n=>{if(n.isMesh&&n.geometry)meshes.push(n);});
+  return meshes;
 }
 
 function prepareGeometry(source){
   source.updateWorldMatrix(true,false);
-  const geometry=source.geometry.clone().applyMatrix4(source.matrixWorld);
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  return geometry;
+  const g=source.geometry.clone().applyMatrix4(source.matrixWorld);
+  g.computeBoundingBox();g.computeBoundingSphere();
+  return g;
 }
 
-function normalizeGeometry(geometry,maxSize){
-  geometry.computeBoundingBox();
-  const box=geometry.boundingBox;
+function centerAndScale(g,maxSize){
+  g.computeBoundingBox();
+  const box=g.boundingBox;
   const size=box.getSize(new THREE.Vector3());
-  const scale=maxSize/Math.max(size.x,size.y,size.z,.001);
-  geometry.translate(-(box.min.x+box.max.x)/2,-(box.min.y+box.max.y)/2,-(box.min.z+box.max.z)/2);
-  geometry.scale(scale,scale,scale);
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  return geometry;
+  const s=maxSize/Math.max(size.x,size.y,size.z,.001);
+  g.translate(-(box.min.x+box.max.x)/2,-(box.min.y+box.max.y)/2,-(box.min.z+box.max.z)/2);
+  g.scale(s,s,s);
+  g.computeBoundingBox();g.computeBoundingSphere();
+  return g;
 }
 
-function cloneMaterial(material){
-  return Array.isArray(material) ? material.map(m=>m?.clone?.()||m) : material?.clone?.()||material;
-}
-
-function addPiece(piece, source, material, maxSize, sourceUrl){
-  const geometry=normalizeGeometry(prepareGeometry(source),maxSize);
-  const mesh=new THREE.Mesh(geometry, material || cloneMaterial(source.material));
+function addRealPiece(piece,source,material,maxSize){
+  const mesh=new THREE.Mesh(centerAndScale(prepareGeometry(source),maxSize),material);
   mesh.name=`real_${piece.name}`;
-  mesh.userData.pieceName=piece.name;
-  mesh.userData.realGlb=sourceUrl;
-  mesh.castShadow=true;
-  mesh.receiveShadow=true;
-  piece.group.clear();
-  piece.group.add(mesh);
-  piece.mesh=mesh;
-  return mesh;
+  mesh.userData={pieceName:piece.name,realGlb:true};
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  piece.group.clear();piece.group.add(mesh);piece.mesh=mesh;
 }
 
 export function buildStonePieces(scene){
   const materials=createStoneMaterials();
-  const symbolGroup=new THREE.Group();
-  symbolGroup.name='symbolGroup';
-  symbolGroup.visible=false;
-  scene.add(symbolGroup);
-
+  const symbolGroup=new THREE.Group();symbolGroup.name='symbolGroup';scene.add(symbolGroup);
   const pieces={};
   PIECES.forEach(([name,initialPos,initialRot,targetPos,targetRot])=>{
-    const group=new THREE.Group();
-    group.name=`piece_${name}`;
-    group.position.copy(initialPos);
-    group.rotation.copy(initialRot);
-    symbolGroup.add(group);
-    pieces[name]={name,group,mesh:null,glowMesh:null,ghost:null,initialPos:initialPos.clone(),initialRot:initialRot.clone(),targetPos:targetPos.clone(),targetRot:targetRot.clone(),isLocked:false,isDragging:false,inMagnetZone:false,velocity:new THREE.Vector3(),dragOffset:new THREE.Vector3(),idleFloatOffset:Math.random()*Math.PI*2};
+    const group=new THREE.Group();group.name=`piece_${name}`;group.position.copy(initialPos);group.rotation.copy(initialRot);symbolGroup.add(group);
+    pieces[name]={name,group,mesh:null,glowMesh:null,ghost:null,initialPos:initialPos.clone(),initialRot:initialRot.clone(),targetPos:targetPos.clone(),targetRot:targetRot.clone(),isLocked:false,isDragging:false,inMagnetZone:false,idleFloatOffset:Math.random()*Math.PI*2};
   });
 
-  const pedestalGroup=new THREE.Group();
-  pedestalGroup.name='pedestal';
-  pedestalGroup.visible=false;
-  pedestalGroup.userData.autoRotateY=false;
-  scene.add(pedestalGroup);
-
+  const pedestalGroup=new THREE.Group();pedestalGroup.name='pedestal';scene.add(pedestalGroup);
   const loader=new GLTFLoader();
-  let pedestalReady=false, symbolReady=false;
-  const reveal=()=>{
-    if(!pedestalReady || !symbolReady) return;
-    symbolGroup.visible=true;
-    pedestalGroup.visible=true;
-    const canvas=document.getElementById('main-canvas');
-    if(canvas) canvas.style.opacity='1';
-  };
 
   loader.load('/models/pedestal.glb',gltf=>{
-    const model=gltf.scene;
-    model.name='ORIGEN_REAL_PEDESTAL';
-    model.traverse(node=>{ if(node.isMesh){ node.castShadow=true; node.receiveShadow=true; } });
-    // Pedestal treated as stage/reference: large enough to read beneath the symbol, never a tiny object.
-    model.scale.setScalar(2.9);
-    model.position.set(0,-3.02,-.35);
+    const model=gltf.scene;model.name='ORIGEN_REAL_PEDESTAL';
+    model.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});
+    // Calibrated to the supplied pedestal reference: broad, visible stage under the emblem.
+    model.scale.setScalar(5.6);
+    model.position.set(0,-4.72,-.75);
     pedestalGroup.add(model);
-    pedestalReady=true;
-    reveal();
-  },undefined,error=>{
-    console.error('[ORIGEN] pedestal.glb failed',error);
-    pedestalReady=true;
-    reveal();
-  });
+  },undefined,error=>console.error('[ORIGEN] pedestal.glb',error));
 
-  const install=(gltf,sourceUrl)=>{
-    const root=gltf.scene;
-    const meshes=collectMeshes(root);
-    if(!meshes.length){
-      console.error(`[ORIGEN] no meshes in ${sourceUrl}`);
-      symbolReady=true;
-      reveal();
+  const install=(gltf,url)=>{
+    const meshes=collectMeshes(gltf.scene);
+    if(meshes.length!==3){
+      console.error(`[ORIGEN] ${url} must contain exactly 3 meshes; found ${meshes.length}`);
       return;
     }
-
-    const used=new Set();
-    const byName={
-      tierra:findMesh(meshes,'tierra'),
-      tiempo:findMesh(meshes,'tiempo'),
-      mano:findMesh(meshes,'mano')
-    };
-    Object.values(byName).forEach(m=>m&&used.add(m));
-    const remaining=meshes.filter(m=>!used.has(m));
-    ['tierra','tiempo','mano'].forEach(name=>{ if(!byName[name] && remaining.length) byName[name]=remaining.shift(); });
-
-    if(!byName.tierra || !byName.tiempo || !byName.mano){
-      console.error('[ORIGEN] rocky_y.glb does not expose three independent meshes; refusing procedural reconstruction.');
-      symbolReady=true;
-      reveal();
-      return;
-    }
-
-    addPiece(pieces.tierra,byName.tierra,materials.tierra,2.7,sourceUrl);
-    addPiece(pieces.tiempo,byName.tiempo,materials.tiempo,2.25,sourceUrl);
-    addPiece(pieces.mano,byName.mano,materials.mano,2.7,sourceUrl);
-
-    symbolReady=true;
-    reveal();
+    // The uploaded reference GLB is spatially authored left/center/right.
+    const ordered=meshes.slice().sort((a,b)=>a.getWorldPosition(new THREE.Vector3()).x-b.getWorldPosition(new THREE.Vector3()).x);
+    addRealPiece(pieces.tierra,ordered[0],materials.tierra,2.45);
+    addRealPiece(pieces.tiempo,ordered[1],materials.tiempo,1.75);
+    addRealPiece(pieces.mano,ordered[2],materials.mano,2.45);
+    pieces.tierra.mesh.userData.realGlbUrl=url;pieces.tiempo.mesh.userData.realGlbUrl=url;pieces.mano.mesh.userData.realGlbUrl=url;
   };
 
-  loader.load('/models/rocky_y.glb',gltf=>install(gltf,'rocky_y.glb'),undefined,error=>{
-    console.warn('[ORIGEN] rocky_y.glb unavailable, trying stone_y.glb',error);
-    loader.load('/models/stone_y.glb',gltf=>install(gltf,'stone_y.glb'),undefined,fallbackError=>{
-      console.error('[ORIGEN] symbol GLBs unavailable',fallbackError);
-      symbolReady=true;
-      reveal();
-    });
+  loader.load('/models/rocky_y.glb',gltf=>install(gltf,'/models/rocky_y.glb'),undefined,error=>{
+    console.warn('[ORIGEN] rocky_y.glb failed; trying stone_y.glb',error);
+    loader.load('/models/stone_y.glb',gltf=>install(gltf,'/models/stone_y.glb'),undefined,second=>console.error('[ORIGEN] symbol GLBs failed',second));
   });
 
   symbolGroup.userData.pieces=pieces;
   symbolGroup.userData.targets=Object.fromEntries(PIECES.map(([name,,,target])=>[name,target.clone()]));
-  symbolGroup.userData.introInitials=Object.fromEntries(PIECES.map(([name,initialPos,initialRot])=>[name,{pos:initialPos.clone(),rot:initialRot.clone()}]));
+  symbolGroup.userData.introInitials=Object.fromEntries(PIECES.map(([name,pos,rot])=>[name,{pos:pos.clone(),rot:rot.clone()}]));
   return {pieces,pedestalGroup,symbolGroup};
 }
