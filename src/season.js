@@ -15,8 +15,8 @@ export const SEASONS = {
     key: 'summer',
     label: 'VERANO',
     icon: '☼',
-    desktopHero: '/images/origen_panoramic_summer_16x9.png',
-    mobileHero: '/images/origen_panoramic_summer_9x16.png',
+    desktopHero: '/images/origen_panoramic_summer_16X9.png',
+    mobileHero: '/images/origen_panoramic_summer_9X16.png',
     bodyClass: 'season-summer'
   }
 };
