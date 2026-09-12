@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createStoneMaterials } from './stonePieces.js';
 import { getPerformanceProfile } from './performance.js';
 
-/** ORIGEN — Material Viewer v2: touch-first + adaptive rendering. */
+/** ORIGEN — Material Viewer v2.1: real GLB only, touch-first, adaptive rendering. */
 export class MaterialViewer {
   constructor(canvasId='viewer-canvas'){
     this.canvas=document.getElementById(canvasId);if(!this.canvas)return;
@@ -18,10 +18,12 @@ export class MaterialViewer {
   }
   buildMonolith(){
     this.symbolMesh=new THREE.Group();this.scene.add(this.symbolMesh);const loader=new GLTFLoader();
-    loader.load('/models/stone_y.glb',(gltf)=>{const model=gltf.scene;const mat=this.materials[this.currentMaterialKey];model.traverse(child=>{if(child.isMesh){this.gltfMesh=child;child.material=mat;child.castShadow=false;child.receiveShadow=false}});model.scale.setScalar(this.profile.mobile?3.0:3.4);model.position.set(0,this.profile.mobile?-1.48:-1.65,0);this.symbolMesh.clear();this.symbolMesh.add(model)},undefined,()=>this.buildProceduralFallback());
-  }
-  buildProceduralFallback(){
-    const shape=new THREE.Shape();shape.moveTo(-.15,-1.8);shape.lineTo(-.85,-1.8);shape.lineTo(-.85,-.4);shape.lineTo(-1.6,1.3);shape.lineTo(-.8,1.7);shape.lineTo(-.15,.3);shape.closePath();const g=new THREE.ExtrudeGeometry(shape,{depth:.6,bevelEnabled:true,bevelSegments:this.profile.lowPower?2:4,steps:1,bevelSize:.055,bevelThickness:.055});g.center();this.symbolMesh.add(new THREE.Mesh(g,this.materials[this.currentMaterialKey]));
+    loader.load('/models/stone_y.glb',(gltf)=>{
+      const model=gltf.scene;model.name='ORIGEN_REAL_VIEWER';
+      model.traverse(child=>{if(child.isMesh){this.gltfMesh=child;child.castShadow=false;child.receiveShadow=false;}});
+      model.scale.setScalar(this.profile.mobile?3.0:3.4);model.position.set(0,this.profile.mobile?-1.48:-1.65,0);
+      this.symbolMesh.clear();this.symbolMesh.add(model);this.setMaterial(this.currentMaterialKey);
+    },undefined,(error)=>console.error('[ORIGEN] stone_y.glb failed in material viewer',error));
   }
   setMaterial(key){if(!this.materials[key])return;this.currentMaterialKey=key;const mat=this.materials[key];if(this.symbolMesh)this.symbolMesh.traverse(c=>{if(c.isMesh)c.material=mat});document.querySelectorAll('.material-btn').forEach(btn=>{const match=btn.dataset.material===key;btn.classList.toggle('active',match);btn.setAttribute('aria-pressed',match.toString())})}
   bindButtons(){document.querySelectorAll('.material-btn').forEach(btn=>btn.addEventListener('click',()=>{const key=btn.dataset.material;if(key)this.setMaterial(key)}))}
