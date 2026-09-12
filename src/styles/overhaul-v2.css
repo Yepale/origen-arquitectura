@@ -1,6 +1,8 @@
-/* ORIGEN v2 visual layer — overrides only, preserves existing landing sections */
-.landing-page .hero-bg{background-image:url('/images/origen_panoramic_background.jpg')!important;background-position:center!important}
-.landing-page .viewer-section{background:linear-gradient(180deg,#12100e,#17130f)!important}
+/* ORIGEN v2.3 — final visual hierarchy
+   Hero is the landing. Viewer follows it. No override may replace the seasonal hero image.
+*/
+.landing-page .hero-bg{background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important}
+.landing-page .viewer-section{background:radial-gradient(circle at 25% 15%,rgba(201,168,108,.045),transparent 28%),linear-gradient(180deg,#12100e 0%,#171410 100%)!important}
 .intro-experience .intro-brand-center{display:none!important}
 #main-canvas{opacity:1!important}
 
