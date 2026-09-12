@@ -2,17 +2,15 @@ import * as THREE from 'three';
 import { getPerformanceProfile } from './performance.js';
 import { SEASONS } from '../season.js';
 
-/** ORIGEN — Scene Manager v4
- * Cinematic Sierra with synchronized winter/summer atmosphere.
+/** ORIGEN — Scene Manager v5
+ * Cinematic Sierra with real winter/summer panorama assets.
  */
 export class SceneManager {
   constructor(canvas){
-    this.canvas=canvas;this.scene=null;this.camera=null;this.renderer=null;this.particles=null;this.lights={};this.clock=new THREE.Clock();this.animationCallbacks=[];this.isDisposed=false;this.pedestalGroup=null;this.profile=getPerformanceProfile();this.season='winter';this.backgroundTexture=null;this.init();
+    this.canvas=canvas;this.scene=null;this.camera=null;this.renderer=null;this.particles=null;this.lights={};this.clock=new THREE.Clock();this.animationCallbacks=[];this.isDisposed=false;this.pedestalGroup=null;this.profile=getPerformanceProfile();this.season='winter';this.backgroundTexture=null;this.backgroundTextures={};this.init();
   }
   init(){
     this.scene=new THREE.Scene();
-    const loader=new THREE.TextureLoader();
-    loader.load('/images/origen_panoramic_background.jpg',(texture)=>{texture.colorSpace=THREE.SRGBColorSpace;texture.mapping=THREE.UVMapping;this.backgroundTexture=texture;this.applySeasonVisuals(this.season,false)},undefined,()=>{this.scene.background=new THREE.Color(0x111318)});
     this.scene.background=new THREE.Color(0x111318);
     this.scene.fog=new THREE.FogExp2(0x617080,0.006);
     const aspect=(this.canvas.clientWidth||window.innerWidth)/(this.canvas.clientHeight||window.innerHeight);
@@ -20,7 +18,7 @@ export class SceneManager {
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:!this.profile.lowPower,powerPreference:'high-performance',alpha:false});
     this.renderer.setSize(this.canvas.clientWidth||window.innerWidth,this.canvas.clientHeight||window.innerHeight,false);this.renderer.setPixelRatio(this.profile.pixelRatio);
     this.renderer.shadowMap.enabled=!this.profile.mobile||!this.profile.lowPower;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.15;
-    this.setupLighting();this.setupDustParticles();window.addEventListener('resize',this.onWindowResize.bind(this));this.onWindowResize();this.render();
+    this.setupLighting();this.setupDustParticles();this.applySeasonVisuals(this.season,false);window.addEventListener('resize',this.onWindowResize.bind(this));this.onWindowResize();this.render();
   }
   setupLighting(){
     const ambient=new THREE.AmbientLight(0x9aa4b2,1.05);this.scene.add(ambient);this.lights.ambient=ambient;
@@ -37,11 +35,26 @@ export class SceneManager {
     const c=document.createElement('canvas');c.width=c.height=32;const ctx=c.getContext('2d'),grad=ctx.createRadialGradient(16,16,0,16,16,16);grad.addColorStop(0,'rgba(255,222,176,1)');grad.addColorStop(.45,'rgba(236,188,120,.35)');grad.addColorStop(1,'rgba(180,140,90,0)');ctx.fillStyle=grad;ctx.fillRect(0,0,32,32);
     this.particles=new THREE.Points(g,new THREE.PointsMaterial({size:this.profile.mobile?.085:.095,map:new THREE.CanvasTexture(c),transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false}));this.particleVelocities=vel;this.scene.add(this.particles);
   }
+  getSeasonBackground(key){
+    const season=SEASONS[key]||SEASONS.winter;
+    return season.desktopHero;
+  }
+  loadSeasonBackground(key){
+    const source=this.getSeasonBackground(key);
+    if(this.backgroundTextures[key]){this.backgroundTexture=this.backgroundTextures[key];this.scene.background=this.backgroundTexture;return;}
+    new THREE.TextureLoader().load(source,texture=>{
+      texture.colorSpace=THREE.SRGBColorSpace;texture.mapping=THREE.UVMapping;this.backgroundTextures[key]=texture;
+      if(this.season===key){this.backgroundTexture=texture;this.scene.background=texture;}
+    },undefined,()=>{
+      console.warn('[ORIGEN] Seasonal panorama unavailable:',source);
+      if(this.season===key)this.scene.background=new THREE.Color(key==='summer'?0x1b120a:0x111318);
+    });
+  }
   applySeasonVisuals(key='winter',animate=true){
     if(!SEASONS[key])key='winter';this.season=key;document.documentElement.dataset.season=key;
     const palette=key==='summer'?{bg:0x1b120a,fog:0x9a7650,ambient:1.12,hemi:1.3,sun:3.0,rim:0xb8d2ea,pedestal:1.9,front:.8}:{bg:0x111318,fog:0x617080,ambient:1.05,hemi:1.55,sun:2.7,rim:0xabc9ea,pedestal:1.7,front:.7};
-    const assign=()=>{if(this.backgroundTexture)this.scene.background=this.backgroundTexture;else this.scene.background=new THREE.Color(palette.bg);this.scene.fog.color.setHex(palette.fog);this.lights.ambient.intensity=palette.ambient;this.lights.hemi.intensity=palette.hemi;this.lights.sun.intensity=palette.sun;this.lights.rim.color.setHex(palette.rim);this.lights.pedestalSun.intensity=palette.pedestal;this.lights.pedestalFront.intensity=palette.front;if(this.particles)this.particles.material.opacity=key==='summer'?0.2:0.28};
-    if(!animate||typeof window==='undefined')assign();else{assign();}
+    const assign=()=>{this.loadSeasonBackground(key);this.scene.fog.color.setHex(palette.fog);this.lights.ambient.intensity=palette.ambient;this.lights.hemi.intensity=palette.hemi;this.lights.sun.intensity=palette.sun;this.lights.rim.color.setHex(palette.rim);this.lights.pedestalSun.intensity=palette.pedestal;this.lights.pedestalFront.intensity=palette.front;if(this.particles)this.particles.material.opacity=key==='summer'?0.2:0.28};
+    assign();
   }
   setSeason(key,opts={}){this.applySeasonVisuals(key,opts.animate!==false)}
   updateParticles(){if(!this.particles)return;const p=this.particles.geometry.attributes.position.array;for(let i=0;i<this.particleVelocities.length;i++){const v=this.particleVelocities[i];p[i*3]+=v.x;p[i*3+1]+=v.y;p[i*3+2]+=v.z;if(p[i*3+1]>5.5)p[i*3+1]=-2.5;if(p[i*3]>6.5)p[i*3]=-6.5;if(p[i*3]<-6.5)p[i*3]=6.5}this.particles.geometry.attributes.position.needsUpdate=true}
