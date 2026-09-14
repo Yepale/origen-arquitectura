@@ -10,8 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.169.0",
-    "gsap": "^3.12.5"
+    "@vercel/speed-insights": "^2.0.0",
+    "gsap": "^3.12.5",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "vite": "^5.4.2"
