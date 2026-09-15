@@ -1,82 +1,47 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-/** ORIGEN — master GLB as a single coherent symbol. */
+/** ORIGEN — Master symbol + separate interaction proxies. */
 const PIECE_META = {
-  tierra: {
-    initial: new THREE.Vector3(-2.15, 0.2, 0.1),
-    initialRot: new THREE.Euler(0.08, 0.2, -0.05),
-    target: new THREE.Vector3(-0.62, 0.25, 0),
-    targetRot: new THREE.Euler(0, 0, 0)
-  },
-  tiempo: {
-    initial: new THREE.Vector3(0, 2.55, -0.05),
-    initialRot: new THREE.Euler(-0.08, 0, 0.04),
-    target: new THREE.Vector3(0, 1.48, 0),
-    targetRot: new THREE.Euler(0, 0, 0)
-  },
-  mano: {
-    initial: new THREE.Vector3(2.15, 0.2, 0.1),
-    initialRot: new THREE.Euler(0.08, -0.2, 0.05),
-    target: new THREE.Vector3(0.62, 0.25, 0),
-    targetRot: new THREE.Euler(0, 0, 0)
-  }
+  tierra: { initial: new THREE.Vector3(-2.25, .45, .15), initialRot: new THREE.Euler(.08,.18,-.05), target: new THREE.Vector3(-.58,.35,0), targetRot: new THREE.Euler(0,0,0) },
+  tiempo: { initial: new THREE.Vector3(0,2.35,0), initialRot: new THREE.Euler(-.08,0,.03), target: new THREE.Vector3(0,1.52,0), targetRot: new THREE.Euler(0,0,0) },
+  mano: { initial: new THREE.Vector3(2.25,.45,.15), initialRot: new THREE.Euler(.08,-.18,.05), target: new THREE.Vector3(.58,.35,0), targetRot: new THREE.Euler(0,0,0) }
 };
 
-function markInteractive(root, pieceName) {
+function markMeshes(root, pieceName='master') {
   root.traverse(node => {
     if (!node.isMesh) return;
     node.castShadow = true;
     node.receiveShadow = true;
-    node.userData.pieceName = pieceName;
     node.userData.realGlb = true;
+    node.userData.pieceName = pieceName;
   });
 }
 
-function getVisualBounds(root) {
+function normalizeModel(root, targetHeight=3.35) {
+  root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  return { box, size, center };
-}
-
-function normalizeMaster(root) {
-  const { size, center } = getVisualBounds(root);
-  const targetHeight = 3.25;
   const scale = targetHeight / Math.max(size.y, 0.001);
   root.scale.setScalar(scale);
-  root.position.sub(center.multiplyScalar(scale));
+  root.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
   root.updateMatrixWorld(true);
   return root;
 }
 
-function assignSemanticRoots(root, pieces) {
-  const nodes = [];
-  root.traverse(node => { if (node.isMesh && node.geometry) nodes.push(node); });
-  if (!nodes.length) throw new Error('Master GLB contains no renderable meshes');
-
-  // Prefer authored piece names when available.
-  const named = { tierra: [], tiempo: [], mano: [] };
-  nodes.forEach(node => {
-    const n = `${node.name || ''} ${node.parent?.name || ''}`.toLowerCase();
-    const key = n.includes('tierra') ? 'tierra' : n.includes('tiempo') ? 'tiempo' : n.includes('mano') ? 'mano' : null;
-    if (key) named[key].push(node);
-  });
-
-  if (named.tierra.length && named.tiempo.length && named.mano.length) {
-    Object.entries(named).forEach(([key, list]) => list.forEach(node => node.userData.pieceName = key));
-    return;
-  }
-
-  // Do not split geometry. Keep the GLB intact and expose it as a single coherent
-  // symbol. Interaction still targets the master root as three semantic handles.
-  const bounds = nodes.map(node => ({ node, center: new THREE.Box3().setFromObject(node).getCenter(new THREE.Vector3()) }));
-  bounds.sort((a, b) => a.center.x - b.center.x);
-  const thirds = Math.max(1, Math.ceil(bounds.length / 3));
-  bounds.forEach((item, index) => {
-    const key = index < thirds ? 'tierra' : index < thirds * 2 ? 'tiempo' : 'mano';
-    item.node.userData.pieceName = key;
-  });
+function makeProxy(pieceName, piece, masterBounds) {
+  const width = Math.max(masterBounds.x * .33, .35);
+  const height = Math.max(masterBounds.y * .42, .45);
+  const depth = Math.max(masterBounds.z * .35, .35);
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  const material = new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false, color:0xffffff });
+  const proxy = new THREE.Mesh(geometry, material);
+  proxy.name = `interaction_${pieceName}`;
+  proxy.userData = { pieceName, interactionProxy:true };
+  proxy.position.copy(piece.targetPos);
+  proxy.visible = true;
+  return proxy;
 }
 
 export function buildStonePieces(scene) {
@@ -86,27 +51,22 @@ export function buildStonePieces(scene) {
 
   const pieces = {};
   Object.entries(PIECE_META).forEach(([name, meta]) => {
-    const group = new THREE.Group();
-    group.name = `piece_${name}`;
-    group.position.copy(meta.initial);
-    group.rotation.copy(meta.initialRot);
-    group.userData.pieceName = name;
-    // Each group is an interaction anchor. The master GLB itself remains intact.
-    symbolGroup.add(group);
+    const anchor = new THREE.Group();
+    anchor.name = `piece_${name}`;
     pieces[name] = {
       name,
-      group,
+      group: anchor,
       mesh: null,
-      glowMesh: null,
-      ghost: null,
-      initialPos: meta.initial.clone(),
-      initialRot: meta.initialRot.clone(),
       targetPos: meta.target.clone(),
       targetRot: meta.targetRot.clone(),
-      isLocked: false,
-      isDragging: false,
-      inMagnetZone: false,
-      idleFloatOffset: Math.random() * Math.PI * 2
+      initialPos: meta.initial.clone(),
+      initialRot: meta.initialRot.clone(),
+      isLocked:false,
+      isDragging:false,
+      inMagnetZone:false,
+      ghost:null,
+      glowMesh:null,
+      idleFloatOffset:Math.random()*Math.PI*2
     };
   });
 
@@ -117,41 +77,37 @@ export function buildStonePieces(scene) {
   const loader = new GLTFLoader();
 
   loader.load('/models/pedestal.glb', gltf => {
-    const model = normalizeMaster(gltf.scene);
-    model.name = 'ORIGEN_REAL_PEDESTAL';
-    model.position.set(0, -1.72, -0.6);
-    model.scale.multiplyScalar(2.05);
-    model.traverse(node => {
-      if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; }
-    });
-    pedestalGroup.add(model);
+    const pedestal = normalizeModel(gltf.scene, 2.9);
+    pedestal.name = 'ORIGEN_REAL_PEDESTAL';
+    pedestal.position.set(0,-1.72,-.65);
+    pedestal.scale.multiplyScalar(1.65);
+    markMeshes(pedestal);
+    pedestalGroup.add(pedestal);
   }, undefined, error => console.error('[ORIGEN] pedestal.glb', error));
 
   loader.load('/models/rocky_y.glb', gltf => {
-    const master = normalizeMaster(gltf.scene);
+    const master = normalizeModel(gltf.scene, 3.35);
     master.name = 'ORIGEN_MASTER_SYMBOL';
-    master.position.set(0, 0.65, 0);
-    master.scale.setScalar(1.0);
-    assignSemanticRoots(master, pieces);
-    markInteractive(master, 'master');
-
-    // IMPORTANT: the supplied GLB is kept as one object; no geometry slicing,
-    // per-piece centering, or per-piece rescaling is performed.
-    symbolGroup.clear();
+    master.position.set(0,.78,0);
+    markMeshes(master);
     symbolGroup.add(master);
     symbolGroup.userData.masterSymbol = master;
-    symbolGroup.userData.pieces = pieces;
 
-    Object.entries(pieces).forEach(([name, piece]) => {
-      piece.group = master;
-      piece.mesh = master;
-      piece.group.userData.pieceName = name;
+    // The authored GLB remains untouched as one coherent object. Interaction uses
+    // invisible semantic proxies so drag/lock logic does not modify the model.
+    const masterBounds = new THREE.Box3().setFromObject(master).getSize(new THREE.Vector3());
+    Object.entries(pieces).forEach(([name,piece]) => {
+      piece.master = master;
+      piece.group = makeProxy(name,piece,masterBounds);
+      piece.mesh = piece.group;
+      symbolGroup.add(piece.group);
     });
   }, undefined, error => {
     console.error('[ORIGEN] master symbol GLB failed', error);
   });
 
-  symbolGroup.userData.targets = Object.fromEntries(Object.entries(PIECE_META).map(([name, meta]) => [name, meta.target.clone()]));
-  symbolGroup.userData.introInitials = Object.fromEntries(Object.entries(PIECE_META).map(([name, meta]) => [name, { pos: meta.initial.clone(), rot: meta.initialRot.clone() }]));
+  symbolGroup.userData.pieces = pieces;
+  symbolGroup.userData.targets = Object.fromEntries(Object.entries(PIECE_META).map(([name,meta]) => [name,meta.target.clone()]));
+  symbolGroup.userData.introInitials = Object.fromEntries(Object.entries(PIECE_META).map(([name,meta]) => [name,{pos:meta.initial.clone(),rot:meta.initialRot.clone()}]));
   return { pieces, pedestalGroup, symbolGroup };
 }
