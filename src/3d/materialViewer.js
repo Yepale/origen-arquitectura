@@ -40,7 +40,7 @@ export class MaterialViewer {
   }
   setMaterial(key){
     const mat=this.materials[key];if(!mat)return;this.currentMaterialKey=key;
-    this.symbolMesh?.traverse(node=>{if(node.isMesh)node.material=mat;});
+    this.symbolMesh?.traverse(node=>{if(node.isMesh)node.material=mat.clone();});
     document.querySelectorAll('.material-btn').forEach(btn=>{const active=btn.dataset.material===key;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
   }
   bindButtons(){document.querySelectorAll('.material-btn').forEach(btn=>btn.addEventListener('click',()=>this.setMaterial(btn.dataset.material)))}
