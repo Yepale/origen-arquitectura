@@ -1,9 +1,18 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { createStoneMaterials } from './stonePieces.js';
 import { getPerformanceProfile } from './performance.js';
 
-/** ORIGEN — Material Viewer: real GLB only, touch-first, adaptive rendering. */
+/** ORIGEN — Material Viewer: intact master GLB, material override without shared refs. */
+function createStoneMaterials(){
+  const make=(color,roughness=.72,metalness=.03)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+  return {
+    caliza:make(0xd4c5a9,.82,.02),
+    terracota:make(0xc4734a,.76,.02),
+    pizarra:make(0x6b7077,.9,.04),
+    natural:make(0xb8a890,.88,.01)
+  };
+}
+
 export class MaterialViewer {
   constructor(canvasId='viewer-canvas'){
     this.canvas=document.getElementById(canvasId);if(!this.canvas)return;
@@ -31,16 +40,19 @@ export class MaterialViewer {
   loadRealModel(){
     const loader=new GLTFLoader();
     loader.load('/models/stone_y.glb',(gltf)=>{
-      const model=gltf.scene;model.name='ORIGEN_REAL_VIEWER';
-      model.traverse(child=>{if(child.isMesh){child.castShadow=false;child.receiveShadow=false;}});
+      const model=gltf.scene;model.name='ORIGEN_REAL_VIEWER_MASTER';
+      model.traverse(child=>{if(child.isMesh){child.castShadow=false;child.receiveShadow=false;child.userData.realGlb=true;}});
       model.scale.setScalar(this.profile.mobile?3.0:3.4);model.position.set(0,this.profile.mobile?-1.48:-1.65,0);
-      this.symbolMesh?.clear();this.symbolMesh=new THREE.Group();this.symbolMesh.name='viewer-symbol';this.symbolMesh.add(model);this.scene.add(this.symbolMesh);
+      this.symbolMesh=new THREE.Group();
+      this.symbolMesh.name='viewer-symbol';
+      this.symbolMesh.add(model);
+      this.scene.add(this.symbolMesh);
       this.setMaterial(this.currentMaterialKey);
     },undefined,(error)=>console.error('[ORIGEN] stone_y.glb failed in material viewer',error));
   }
   setMaterial(key){
     const mat=this.materials[key];if(!mat)return;this.currentMaterialKey=key;
-    this.symbolMesh?.traverse(node=>{if(node.isMesh)node.material=mat.clone();});
+    this.symbolMesh?.traverse(node=>{if(node.isMesh){node.material=mat.clone();node.material.needsUpdate=true;}});
     document.querySelectorAll('.material-btn').forEach(btn=>{const active=btn.dataset.material===key;btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));});
   }
   bindButtons(){document.querySelectorAll('.material-btn').forEach(btn=>btn.addEventListener('click',()=>this.setMaterial(btn.dataset.material)))}
