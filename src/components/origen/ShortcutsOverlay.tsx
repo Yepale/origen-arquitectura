@@ -19,6 +19,7 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['S'], label: 'Cambiar estación (Verano / Invierno)' },
   { keys: ['A'], label: 'Auto-orbita' },
   { keys: ['B'], label: 'Panorama de fondo' },
+  { keys: ['K'], label: 'Vistas guardadas (bookmarks)' },
   { keys: ['M'], label: 'Audio ambiental (viento)' },
   { keys: ['R'], label: 'Restablecer vista' },
   { keys: ['C'], label: 'Capturar PNG' },

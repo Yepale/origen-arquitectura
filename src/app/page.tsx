@@ -79,6 +79,10 @@ const GalleryMode = dynamic(
   () => import('@/components/origen/GalleryMode').then((m) => m.GalleryMode),
   { ssr: false }
 );
+const BookmarksPanel = dynamic(
+  () => import('@/components/origen/BookmarksPanel').then((m) => m.BookmarksPanel),
+  { ssr: false }
+);
 
 const SUMMER_LANDSCAPE = '/assets/panoramic/origen_panoramic_summer_16X9.png';
 const SUMMER_PORTRAIT = '/assets/panoramic/origen_panoramic_summer_9X16.png';
@@ -409,6 +413,7 @@ export default function OrigenPage() {
       <GuidedTourCard />
       <CompareView />
       <GalleryMode />
+      <BookmarksPanel />
     </div>
   );
 }

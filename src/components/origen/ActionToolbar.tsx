@@ -23,6 +23,7 @@ import {
   GalleryVerticalEnd,
   Columns2,
   Play,
+  Bookmark,
 } from 'lucide-react';
 import { useMaterialStore, type CameraPreset } from '@/3d/materialViewer';
 
@@ -48,6 +49,7 @@ export function ActionToolbar() {
   const compareView = useMaterialStore((s) => s.compareView);
   const setGalleryMode = useMaterialStore((s) => s.setGalleryMode);
   const galleryMode = useMaterialStore((s) => s.galleryMode);
+  const toggleBookmarks = useMaterialStore((s) => s.toggleBookmarks);
 
   const btn =
     'flex h-9 w-9 items-center justify-center rounded-full border border-stone-500/40 bg-stone-950/65 text-stone-200 backdrop-blur-md transition hover:bg-stone-800/80 hover:text-amber-200';
@@ -118,6 +120,9 @@ export function ActionToolbar() {
         </button>
         <button onClick={share} className={btn} title="Copiar enlace (L)" aria-label="Compartir enlace">
           <Share2 className="h-4 w-4" />
+        </button>
+        <button onClick={toggleBookmarks} className={btn} title="Vistas guardadas (K)" aria-label="Vistas guardadas">
+          <Bookmark className="h-4 w-4" />
         </button>
         <button
           onClick={() => setFullscreen(!fullscreen)}

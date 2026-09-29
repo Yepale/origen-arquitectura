@@ -30,6 +30,24 @@ import { applyHoverState, useInteraction } from '@/3d/interaction';
 import { syncMaterialState, setMaterialsTransparent, setMaterialsOpacity, useMaterialStore } from '@/3d/materialViewer';
 import { EdgesOverlay } from './EdgesOverlay';
 
+/** Procedural radial-gradient soft shadow texture (white→transparent). */
+function makeSoftShadowTexture(): THREE.Texture {
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(0,0,0,0.85)');
+  g.addColorStop(0.35, 'rgba(0,0,0,0.55)');
+  g.addColorStop(0.7, 'rgba(0,0,0,0.18)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export interface CompositionInfo {
   symbolHeight: number;
   compositionHeight: number;
@@ -56,6 +74,7 @@ export function OrigenComposition({
   const setTelemetry = useMaterialStore((s) => s.setTelemetry);
   const setLoaded = useMaterialStore((s) => s.setLoaded);
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
+  const season = useMaterialStore((s) => s.season);
 
   const { symbol, size, meshes } = useOrigenSymbol(lod);
   const { pedestal, topY, pedestalMeshes } = usePedestal();
@@ -189,7 +208,20 @@ export function OrigenComposition({
 
   return (
     <group>
-      {/* Soft contact shadow just under the pedestal base */}
+      {/* Soft radial contact shadow blob — grounds the pedestal on bright
+          winter days where the directional shadow is faint. A procedural
+          radial-gradient texture on a large plane, blended multiply. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+        <circleGeometry args={[3.2, 64]} />
+        <meshBasicMaterial
+          map={useMemo(() => makeSoftShadowTexture(), [])}
+          transparent
+          opacity={0.55}
+          depthWrite={false}
+          color={season === 'summer' ? '#3a2a14' : '#2a3340'}
+        />
+      </mesh>
+      {/* Real-time directional shadow catcher (sharper, under the sun) */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <circleGeometry args={[2.4, 64]} />
         <shadowMaterial opacity={0.32} />

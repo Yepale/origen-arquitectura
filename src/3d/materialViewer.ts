@@ -25,6 +25,32 @@ import type { Season } from './sceneManager';
 export type ConceptTag = 'tierra' | 'tiempo' | 'mano';
 export type CameraPreset = 'front' | 'hero' | 'side' | 'top';
 
+/** A saved bookmark = a snapshot of the view + material state. */
+export interface OrigenBookmark {
+  id: string;
+  name: string;
+  createdAt: number;
+  cameraPreset: CameraPreset;
+  orbit: { azimuth: number; elevation: number; distance: number };
+  season: Season;
+  lod: LOD;
+  wireframe: boolean;
+  showEdges: boolean;
+  vertexColors: boolean;
+  envIntensity: number;
+  roughnessOverride: number | null;
+  autoRotate: boolean;
+  showBackdrop: boolean;
+  audioEnabled: boolean;
+}
+
+/** Compact orbit (spherical) coords for URL hash serialization. */
+export interface OrbitCoords {
+  azimuth: number;    // radians around Y
+  elevation: number;   // radians from horizon
+  distance: number;    // world units
+}
+
 /** Per-season sensible defaults for environment intensity (used when the
  *  user switches season without a manual override). */
 export const SEASON_ENV_DEFAULTS: Record<Season, number> = {
@@ -75,6 +101,12 @@ export interface MaterialState {
   compareView: boolean;              // summer | winter side by side
   // ── gallery mode (minimal chrome) ──
   galleryMode: boolean;
+  // ── bookmarks (saved view + material snapshots, persisted to localStorage) ──
+  bookmarks: OrigenBookmark[];
+  showBookmarks: boolean;
+  // ── orbit apply signal (for exact-framing restore from URL hash) ──
+  applyOrbitSignal: number;
+  pendingOrbit: OrbitCoords | null;
   // ── transient signals (increment to trigger an action) ──
   resetViewSignal: number;
   captureSignal: number;
@@ -108,6 +140,11 @@ export interface MaterialState {
   setGuidedTour: (v: boolean) => void;
   setCompareView: (v: boolean) => void;
   setGalleryMode: (v: boolean) => void;
+  saveBookmark: (name: string) => void;
+  deleteBookmark: (id: string) => void;
+  applyBookmark: (id: string) => void;
+  toggleBookmarks: () => void;
+  applyOrbit: (coords: OrbitCoords) => void;
   resetView: () => void;
   capture: () => void;
   applyCameraPreset: (p: CameraPreset) => void;
@@ -139,6 +176,31 @@ const DEFAULTS = {
   galleryMode: false,
 };
 
+const BOOKMARKS_KEY = 'origen-bookmarks';
+
+/** Load bookmarks from localStorage (client-safe). */
+function loadBookmarks(): OrigenBookmark[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(BOOKMARKS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Persist bookmarks to localStorage (client-safe). */
+function persistBookmarks(bm: OrigenBookmark[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bm));
+  } catch {
+    /* storage full / disabled — ignore */
+  }
+}
+
 export const useMaterialStore = create<MaterialState>((set) => ({
   ...DEFAULTS,
   resetViewSignal: 0,
@@ -146,6 +208,10 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   cameraPresetSignal: 0,
   cameraPreset: 'hero',
   shareSignal: 0,
+  applyOrbitSignal: 0,
+  pendingOrbit: null,
+  bookmarks: loadBookmarks(),
+  showBookmarks: false,
   showShortcuts: false,
   showConcept: false,
   conceptTag: null,
@@ -180,6 +246,70 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     })),
   setCompareView: (v) => set({ compareView: v }),
   setGalleryMode: (v) => set({ galleryMode: v }),
+  // Bookmarks: snapshot the current view + material state into a named entry
+  // persisted to localStorage. The orbit coords are read from the global
+  // (set by the CameraRig each frame) so the bookmark captures the exact
+  // framing, not just the preset.
+  saveBookmark: (name) =>
+    set((s) => {
+      const orbit = (globalThis as any).__origenOrbit ?? { azimuth: 0, elevation: 0.9, distance: 10 };
+      const bm: OrigenBookmark = {
+        id: `bm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: name || `Vista ${s.bookmarks.length + 1}`,
+        createdAt: Date.now(),
+        cameraPreset: s.cameraPreset,
+        orbit,
+        season: s.season,
+        lod: s.lod,
+        wireframe: s.wireframe,
+        showEdges: s.showEdges,
+        vertexColors: s.vertexColors,
+        envIntensity: s.envIntensity,
+        roughnessOverride: s.roughnessOverride,
+        autoRotate: s.autoRotate,
+        showBackdrop: s.showBackdrop,
+        audioEnabled: s.audioEnabled,
+      };
+      const next = [bm, ...s.bookmarks].slice(0, 24);
+      persistBookmarks(next);
+      return { bookmarks: next };
+    }),
+  deleteBookmark: (id) =>
+    set((s) => {
+      const next = s.bookmarks.filter((b) => b.id !== id);
+      persistBookmarks(next);
+      return { bookmarks: next };
+    }),
+  applyBookmark: (id) =>
+    set((s) => {
+      const bm = s.bookmarks.find((b) => b.id === id);
+      if (!bm) return {};
+      return {
+        cameraPreset: bm.cameraPreset,
+        cameraPresetSignal: s.cameraPresetSignal + 1,
+        pendingOrbit: bm.orbit,
+        applyOrbitSignal: s.applyOrbitSignal + 1,
+        season: bm.season,
+        envIntensity: bm.envIntensity,
+        lod: bm.lod,
+        wireframe: bm.wireframe,
+        showEdges: bm.showEdges,
+        vertexColors: bm.vertexColors,
+        roughnessOverride: bm.roughnessOverride,
+        autoRotate: bm.autoRotate,
+        showBackdrop: bm.showBackdrop,
+        audioEnabled: bm.audioEnabled,
+        autoTour: false,
+        guidedTour: false,
+      };
+    }),
+  toggleBookmarks: () => set((s) => ({ showBookmarks: !s.showBookmarks })),
+  // Apply an exact orbit (azimuth/elevation/distance) — used by URL hash restore.
+  applyOrbit: (coords) =>
+    set((s) => ({
+      pendingOrbit: coords,
+      applyOrbitSignal: s.applyOrbitSignal + 1,
+    })),
   resetView: () => set((s) => ({ resetViewSignal: s.resetViewSignal + 1 })),
   capture: () => set((s) => ({ captureSignal: s.captureSignal + 1 })),
   applyCameraPreset: (p) =>

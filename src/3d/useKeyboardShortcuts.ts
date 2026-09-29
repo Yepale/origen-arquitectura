@@ -13,6 +13,7 @@
  *   G           → toggle gallery mode (minimal chrome)
  *   X           → toggle compare-seasons split view
  *   B           → toggle backdrop
+ *   K           → toggle bookmarks panel (saved views)
  *   M           → toggle ambient audio
  *   R           → reset view
  *   C           → capture PNG
@@ -88,6 +89,9 @@ export function useKeyboardShortcuts() {
         case 'b':
           s.setShowBackdrop(!s.showBackdrop);
           break;
+        case 'k':
+          s.toggleBookmarks();
+          break;
         case 'm':
           s.setAudioEnabled(!s.audioEnabled);
           break;
@@ -121,6 +125,7 @@ export function useKeyboardShortcuts() {
           if (s.showShortcuts) s.toggleShortcuts();
           if (s.showConcept) s.closeConcept();
           if (s.showMobileInfo) s.toggleMobileInfo();
+          if (s.showBookmarks) s.toggleBookmarks();
           if (s.compareView) s.setCompareView(false);
           if (s.galleryMode) s.setGalleryMode(false);
           if (s.fullscreen) s.setFullscreen(false);

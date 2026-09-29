@@ -104,6 +104,19 @@ function parseHash(): Partial<Record<(typeof SYNCED_KEYS)[number], unknown>> {
       case 'view':
         if (PRESETS.includes(v as CameraPreset)) out.cameraPreset = v as CameraPreset;
         break;
+      case 'orbit': {
+        // Format: azimuth,elevation,distance (radians,radians,units)
+        const parts = v.split(',');
+        if (parts.length === 3) {
+          const az = parseFloat(parts[0]);
+          const el = parseFloat(parts[1]);
+          const di = parseFloat(parts[2]);
+          if (!Number.isNaN(az) && !Number.isNaN(el) && !Number.isNaN(di)) {
+            out.orbit = { azimuth: az, elevation: el, distance: di };
+          }
+        }
+        break;
+      }
     }
   }
   return out;
@@ -125,6 +138,7 @@ function buildHash(s: {
   showBackdrop: boolean;
   audioEnabled: boolean;
   cameraPreset: CameraPreset;
+  orbit?: { azimuth: number; elevation: number; distance: number };
 }): string {
   const parts = [
     `season=${s.season}`,
@@ -143,7 +157,18 @@ function buildHash(s: {
     `audio=${s.audioEnabled ? '1' : '0'}`,
     `view=${s.cameraPreset}`,
   ];
+  if (s.orbit) {
+    parts.push(`orbit=${s.orbit.azimuth.toFixed(3)},${s.orbit.elevation.toFixed(3)},${s.orbit.distance.toFixed(2)}`);
+  }
   return parts.join('&');
+}
+
+/** Read the current orbit coords from the global (published by CameraRig). */
+function readOrbitGlobal(): { azimuth: number; elevation: number; distance: number } | undefined {
+  if (typeof globalThis === 'undefined') return undefined;
+  const o = (globalThis as any).__origenOrbit;
+  if (!o || typeof o.azimuth !== 'number') return undefined;
+  return o;
 }
 
 export function useUrlState() {
@@ -166,6 +191,7 @@ export function useUrlState() {
     if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
     if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
     if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
+    if (parsed.orbit) store.applyOrbit(parsed.orbit as { azimuth: number; elevation: number; distance: number });
   }, []);
 
   // Store → hash (debounced via rAF).
@@ -236,6 +262,7 @@ export function useUrlState() {
       if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
       if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
       if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
+      if (parsed.orbit) store.applyOrbit(parsed.orbit as { azimuth: number; elevation: number; distance: number });
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -243,6 +270,8 @@ export function useUrlState() {
 }
 
 // Re-export so the share button can build the canonical URL without subscribing.
+// The orbit coords (exact camera framing) are read from the global published
+// by the CameraRig each frame, so shared links reproduce the exact view.
 export function buildShareUrl(): string {
   const s = useMaterialStore.getState();
   const hash = buildHash({
@@ -261,6 +290,7 @@ export function buildShareUrl(): string {
     showBackdrop: s.showBackdrop,
     audioEnabled: s.audioEnabled,
     cameraPreset: s.cameraPreset,
+    orbit: readOrbitGlobal(),
   });
   if (typeof window === 'undefined') return `#${hash}`;
   return `${window.location.origin}${window.location.pathname}#${hash}`;

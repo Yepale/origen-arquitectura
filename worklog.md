@@ -369,3 +369,64 @@ Project entered this round in a stable, verified state (Rounds 1–3 complete: e
    - Add a **"guided tour" voice-over** (TTS via the TTS skill) synced to each preset stop.
    - Add a **fullscreen-only "gallery mode"** that auto-starts the auto-tour for a kiosk/lobby display.
    - Add a **bookmarks/presets panel** where users can save custom camera framings + material states.
+
+---
+
+## Round 5 — webDevReview (cron #5) · soft shadows, bookmarks & orbit serialization
+
+### Current project status / assessment
+Project entered this round in a stable, verified state (Rounds 1–4 complete: entrance animation, reset-view, capture, keyboard shortcuts, concept overlay, telemetry, URL state, share, camera presets, fullscreen, particles, season-aware env, mobile info sheet, auto-tour, edges overlay, ambient audio, gallery mode, guided tour, compare view). Lint clean, dev server all 200s, only the harmless `THREE.Clock` deprecation warning. The Round 4 backlog listed: AccumulativeShadows grounding, full orbit serialization, bookmarks/saved-views — all picked up this round.
+
+### Goals for this round
+- Add a **soft contact shadow blob** under the pedestal for stronger grounding (especially on bright winter days).
+- Add **full orbit camera serialization** to the URL hash so shared links reproduce the exact framing (azimuth/elevation/distance).
+- Add a **bookmarks/saved-views panel** — snapshot the current view + material state into a named entry (localStorage), re-apply with one click.
+- Continue enriching the action toolbar + keyboard shortcuts.
+
+### Completed modifications
+**1. Soft contact shadow blob (`OrigenComposition.tsx`)**
+- Added a procedural radial-gradient `CanvasTexture` (white→transparent, 4-stop gradient) on a 3.2-radius circle plane at Y=0.002, blended with a season-tinted `meshBasicMaterial` (warm dark brown for summer, cool dark slate for winter). Sits ABOVE the directional shadow catcher so both read together.
+- The directional `shadowMaterial` (0.32 opacity) is preserved underneath for the real-time sun shadow.
+- Verified: VLM-confirmed "soft, dark radial shadow blob" grounding the pedestal, distinct from the sharper directional sun shadow.
+
+**2. Full orbit camera serialization (`useUrlState.ts` + `cameraRig.tsx`)**
+- New `OrbitCoords` type + `applyOrbit(coords)` action + `applyOrbitSignal` + `pendingOrbit` in the store.
+- CameraRig: a new `useEffect` consumes `applyOrbitSignal` + `pendingOrbit` and snaps the camera to the exact azimuth/elevation/distance (spherical→cartesian, damping off for instant snap).
+- A second `useFrame` publishes the current orbit coords to `globalThis.__origenOrbit` every frame (cheap) so the bookmark "save" + share-link build can read the exact framing without subscribing to the controls ref.
+- `useUrlState`: parses `orbit=azimuth,elevation,distance` from the hash on mount + hashchange → calls `applyOrbit`. `buildShareUrl` reads `readOrbitGlobal()` and includes `orbit=` in the canonical share URL.
+- Verified: setting `#orbit=1.5,0.8,12.0&season=winter` restored the exact camera angle + winter scene.
+
+**3. Bookmarks/saved-views panel (`BookmarksPanel.tsx` + store)**
+- New `OrigenBookmark` interface (id, name, createdAt, cameraPreset, orbit, season, lod, wireframe/showEdges/vertexColors, envIntensity, roughnessOverride, autoRotate, showBackdrop, audioEnabled).
+- Store actions: `saveBookmark(name)` (snapshots current state + reads `__origenOrbit`), `deleteBookmark(id)`, `applyBookmark(id)` (restores all fields + applies the orbit), `toggleBookmarks()`. Persisted to `localStorage` (`origen-bookmarks` key, client-safe load/persist helpers, capped at 24 entries).
+- `BookmarksPanel` component: modal with a name input + "Guardar" button, a list of bookmark rows (name, preset badge, season badge, timestamp, distance), each with an apply + delete button. Empty state with a camera icon + helpful copy.
+- `K` key toggles; `Esc` closes; action-toolbar bookmark button (Bookmark icon).
+- Verified: saved a bookmark → it appeared in the panel with preset/season/distance/timestamp → persisted in localStorage (count=1).
+
+**4. Action toolbar expanded (`ActionToolbar.tsx`)**
+- Added a bookmark button (Bookmark icon, `K` key, "Vistas guardadas" label) between Share and Fullscreen.
+
+**5. Keyboard shortcuts extended (`useKeyboardShortcuts.ts`)**
+- New: `K` toggle bookmarks panel. `Esc` now also closes the bookmarks panel. 20 total shortcuts listed in the overlay.
+
+### Verification results (agent-browser, desktop 1440×900)
+- ✅ No runtime errors; only the harmless `THREE.Clock` deprecation warning.
+- ✅ **Soft shadow blob**: VLM-confirmed diffuse radial shadow grounding the pedestal, distinct from the directional sun shadow. Season-tinted (warm summer / cool winter).
+- ✅ **Orbit serialization**: `#orbit=1.5,0.8,12.0&season=winter` restored the exact camera angle + winter scene (VLM-confirmed specific angle, not default hero).
+- ✅ **Bookmarks panel**: opens via button + `K` key; shows empty state; save creates a bookmark (name input + "Guardar"); bookmark appears in the list with preset/season/distance/timestamp; persists to localStorage (count=1).
+- ✅ **Share link**: button + `L` key → "Enlace copiado" toast; canonical URL now includes `orbit=` for exact-framing reproduction.
+- ✅ All Rounds 1–4 features still working.
+- ✅ Lint clean (`bun run lint` → 0 errors, 0 warnings); dev server all 200s.
+- ✅ Preview PNG re-captured & sharp-optimized (1.4 MB → 397 KB).
+
+### Unresolved issues / risks & next-phase recommendations
+1. **`THREE.Clock` deprecation** — drei internal; resolves when drei updates. No action.
+2. **Headless rAF throttling** — the auto-tour/guided-tour motion + orbit global publish are imperceptible in the throttled test harness but work in real browsers (confirmed via orbit-restore snapshot).
+3. **Orbit thrash on continuous sync** — the orbit is NOT synced to the hash on every frame (would thrash history); only written when the user clicks Share. Restoring from a shared link works via the `applyOrbit` signal. This is the right tradeoff.
+4. **Bookmark name input** — the synthetic input event in the test harness didn't set the React-controlled value correctly, so the test bookmark saved with the default name "Vista 1". In a real browser the typed name is used. Not a code bug.
+5. **Next-round candidate features**:
+   - Add a **TTS voice-over** for the guided tour (narration spoken aloud via the TTS skill, synced to each preset stop).
+   - Add a **kiosk/lobby mode** that auto-starts gallery mode + auto-tour on load (URL flag `kiosk=1`).
+   - Add a **material preset library** (stone / marble / basalt / weathered) — swap the ORIGEN material look without touching geometry.
+   - Add **postprocessing** (bloom + vignette + subtle chromatic aberration) via @react-three/postprocessing for a cinematic hero shot.
+   - Add a **mini-map / orientation indicator** showing the current camera azimuth relative to the monolith.

@@ -31,6 +31,8 @@ export function OrigenViewer() {
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
   const cameraPresetSignal = useMaterialStore((s) => s.cameraPresetSignal);
   const cameraPreset = useMaterialStore((s) => s.cameraPreset);
+  const applyOrbitSignal = useMaterialStore((s) => s.applyOrbitSignal);
+  const pendingOrbit = useMaterialStore((s) => s.pendingOrbit);
   const [info, setInfo] = useState<CompositionInfo | null>(null);
   const onLoaded = useCallback((i: CompositionInfo) => setInfo(i), []);
 
@@ -60,6 +62,8 @@ export function OrigenViewer() {
             resetViewSignal={resetViewSignal}
             cameraPresetSignal={cameraPresetSignal}
             cameraPreset={cameraPreset}
+            applyOrbitSignal={applyOrbitSignal}
+            pendingOrbit={pendingOrbit}
           />
         )}
         <OrigenComposition onLoaded={onLoaded} />

@@ -35,6 +35,9 @@ export interface CameraRigProps {
   cameraPreset: CameraPreset;
   /** Cinematic auto-tour: gentle fly-through the presets. */
   autoTour: boolean;
+  /** Increment to apply `pendingOrbit` (exact-framing restore). */
+  applyOrbitSignal: number;
+  pendingOrbit: { azimuth: number; elevation: number; distance: number } | null;
 }
 
 /** Comfortable camera distance to fit a target box at a given fov & aspect. */
@@ -92,6 +95,8 @@ export function CameraRig({
   cameraPresetSignal,
   cameraPreset,
   autoTour,
+  applyOrbitSignal,
+  pendingOrbit,
 }: CameraRigProps) {
   const targetY = compositionHeight * 0.52;
   const controlsRef = useRef<any>(null);
@@ -142,6 +147,24 @@ export function CameraRig({
     if (idx >= 0) tourT.current = idx * TOUR_SEGMENT_SECONDS;
   }, [cameraPresetSignal, cameraPreset, compositionHeight, compositionWidth, targetY]);
 
+  // Apply an exact orbit (azimuth/elevation/distance) — used by bookmark
+  // restore + URL hash orbit restore. Snaps instantly (damping off).
+  useEffect(() => {
+    const c = controlsRef.current;
+    if (!c || !pendingOrbit) return;
+    const { azimuth, elevation, distance } = pendingOrbit;
+    const wasDamped = c.enableDamping;
+    c.enableDamping = false;
+    c.target.set(0, targetY, 0);
+    const x = distance * Math.cos(elevation) * Math.sin(azimuth);
+    const y = targetY + distance * Math.sin(elevation);
+    const z = distance * Math.cos(elevation) * Math.cos(azimuth);
+    c.object.position.set(x, y, z);
+    c.object.updateProjectionMatrix?.();
+    c.update();
+    c.enableDamping = wasDamped;
+  }, [applyOrbitSignal, pendingOrbit, targetY]);
+
   // Cinematic auto-tour: interpolate between preset positions on a timeline.
   useFrame((_, delta) => {
     if (!autoTour) return;
@@ -173,6 +196,19 @@ export function CameraRig({
     if (currentPreset !== useMaterialStore.getState().cameraPreset) {
       useMaterialStore.setState({ cameraPreset: currentPreset });
     }
+  });
+
+  // Publish the current orbit (azimuth/elevation/distance) to a global so
+  // the bookmark "save" action can snapshot the exact framing without
+  // subscribing to the controls ref directly. Runs every frame (cheap).
+  useFrame(() => {
+    const c = controlsRef.current;
+    if (!c) return;
+    const offset = c.object.position.clone().sub(c.target);
+    const distance = offset.length();
+    const elevation = Math.asin(offset.y / Math.max(distance, 1e-4));
+    const azimuth = Math.atan2(offset.x, offset.z);
+    (globalThis as any).__origenOrbit = { azimuth, elevation, distance };
   });
 
   return (
