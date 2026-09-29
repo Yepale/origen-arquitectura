@@ -1,0 +1,615 @@
+✓ Done
+✓ Done
+✓ Screenshot saved to /tmp/r2-final-summer.png
+✅ File saved to: /tmp/r2final.json
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORIGEN - Estudio de Arquitectura</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Google Fonts: Inter & Playfair Display -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- KaTeX Configuration (Strictly as requested) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script>
+        window.onload = function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ]
+            });
+        };
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; /* Prevent scroll on main view */
+        }
+        .font-serif-display { font-family: 'Playfair Display', serif; }
+        
+        /* Custom Scrollbar for panels */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(18, 18, 20, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #D97706;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #D97706;
+        }
+
+        /* Canvas Container */
+        #canvas-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* Animations */
+        @keyframes float-dust {
+            0% { transform: translate(0, 0) scale(1); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(100px, -200px) scale(1.5); opacity: 0; }
+        }
+        
+        .dust-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(1px);
+            animation: float-dust linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-black text-white h-screen w-screen flex flex-col selection:bg-amber-500/30">
+
+    <!-- Background / 3D Layer -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="relative z-10 w-full h-full flex flex-col pointer-events-none">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center p-5 md:p-8 pointer-events-auto">
+            <!-- Logo Area -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-black/40 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-lg">
+                    <i class="fa-solid fa-mountain text-amber-400 text-lg"></i>
+                </div>
+                <div class="hidden sm:block">
+                    <h1 class="text-xl font-bold tracking-widest uppercase">Origen</h1>
+                    <p class="text-[10px] text-gray-400 tracking-widest uppercase font-medium">Estudio de Arquitectura</p>
+                </div>
+            </div>
+
+            <!-- Top Center Toggles (Pills) -->
+            <div class="absolute left-1/2 top-6 -translate-x-1/2 hidden md:flex gap-3">
+                <button class="px-4 py-1.5 rounded-full glass-btn text-xs font-semibold text-amber-100 border-amber-500/30 hover:text-white">
+                    <i class="fa-solid fa-mountain mr-2"></i>Tierra
+                </button>
+                <button class="px-4 py-1.5 rounded-full glass-btn text-xs font-semibold text-blue-200 border-blue-500/30 hover:text-white">
+                    <i class="fa-solid fa-cloud-sun mr-2"></i>Tiempo
+                </button>
+                <button class="px-4 py-1.5 rounded-full glass-btn text-xs font-semibold text-gray-300 border-white/10 hover:text-white">
+                    <i class="fa-solid fa-hand-sparkles mr-2"></i>Mano
+                </button>
+            </div>
+
+            <!-- Top Right Stats -->
+            <div class="flex items-center gap-4 text-xs font-mono text-gray-300">
+                <div class="hidden lg:flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
+                    <i class="fa-solid fa-bolt text-red-400 mr-1"></i> 1 FPS
+                </div>
+                <div class="hidden sm:flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
+                    <i class="fa-regular fa-circle-dot text-green-400 mr-1"></i> 3
+                </div>
+                <div class="hidden sm:flex items-center gap-1 bg-black/30 px-3 py-1.5 rounded-lg border border-white/5">
+                    <i class="fa-solid fa-triangle-exclamation text-yellow-400 mr-1"></i> 4.1k
+                </div>
+                <div class="font-bold text-white bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+                    glTF 2.0
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex relative">
+            
+            <!-- Left: Info Card (Absolute positioned for overlay feel) -->
+            <div id="info-card" class="absolute bottom-28 md:bottom-24 left-4 md:left-8 w-[340px] glass-panel rounded-2xl p-6 pointer-events-auto transition-all duration-300 ease-in-out transform translate-y-0 opacity-100 z-20">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Símbolo Maestro</span>
+                    <button onclick="toggleInfoCard()" class="text-gray-500 hover:text-white transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                
+                <h2 class="text-xl font-bold text-white mb-3 leading-tight">ORIGEN • Tierra • Tiempo • Mano</h2>
+                
+                <p class="text-sm text-gray-300 leading-relaxed mb-6">
+                    Escultura monolítica de piedra caliza inspirada en la sierra antigua de la Sierra de Albarracín. Tres volúmenes —Tierra, Tiempo y Mano— ensamblados en un único emblema continuo, con un arco en negativo que abra el centro.
+                </p>
+
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="bg-black/30 p-2 rounded-lg text-center border border-white/5">
+                        <div class="text-xs font-bold text-white">2.8k</div>
+                        <div class="text-[9px] text-gray-500 uppercase tracking-wide">Vértices</div>
+                    </div>
+                    <div class="bg-black/30 p-2 rounded-lg text-center border border-white/5">
+                        <div class="text-xs font-bold text-white">GLB 2.0</div>
+                        <div class="text-[9px] text-gray-500 uppercase tracking-wide">Formato</div>
+                    </div>
+                    <div class="bg-black/30 p-2 rounded-lg text-center border border-white/5">
+                        <div class="text-xs font-bold text-white">PBR caliza</div>
+                        <div class="text-[9px] text-gray-500 uppercase tracking-wide">Material</div>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-500 border-t border-white/5 pt-3">
+                    Activo inmutable: <span class="text-gray-300 font-mono">ORIGEN_MASTER.glb</span> • luz cálida de verano.
+                </div>
+            </div>
+
+            <!-- Center: Camera Controls (Floating) -->
+            <div class="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 pointer-events-auto z-10">
+                <!-- Presets -->
+                <div class="flex bg-black/60 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-2xl">
+                    <button onclick="setCamera('hero')" class="preset-btn px-4 py-1.5 rounded-full text-xs font-medium text-gray-300 hover:text-white transition-all"><i class="fa-solid fa-user mr-1.5"></i>Hero</button>
+                    <button onclick="setCamera('front')" class="preset-btn px-4 py-1.5 rounded-full text-xs font-medium text-gray-300 hover:text-white transition-all"><i class="fa-regular fa-square mr-1.5"></i>Frente</button>
+                    <button onclick="setCamera('side')" class="preset-btn px-4 py-1.5 rounded-full text-xs font-medium text-gray-300 hover:text-white transition-all"><i class="fa-solid fa-cube mr-1.5"></i>Perfil</button>
+                    <button onclick="setCamera('top')" class="preset-btn px-4 py-1.5 rounded-full text-xs font-medium bg-amber-600/80 text-white shadow-md"><i class="fa-solid fa-eye mr-1.5"></i>Cenital</button>
+                </div>
+
+                <!-- Action Cluster -->
+                <div class="flex gap-3">
+                    <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white hover:border-amber-500/50 group" title="Reset View">
+                        <i class="fa-solid fa-arrow-rotate-left group-hover:rotate-180 transition-transform duration-500"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white hover:border-amber-500/50" title="Capture">
+                        <i class="fa-solid fa-camera"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white hover:border-amber-500/50" title="Share">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                    <button onclick="toggleFullscreen()" class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white hover:border-amber-500/50" title="Fullscreen">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white hover:border-amber-500/50" title="Shortcuts">
+                        <i class="fa-solid fa-keyboard"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Control Panel (Sidebar) -->
+            <aside class="ml-auto w-full max-w-[320px] h-full glass-panel border-l border-t border-white/10 rounded-l-3xl flex flex-col pointer-events-auto overflow-hidden">
+                
+                <!-- Panel Header -->
+                <div class="p-6 pb-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-gem text-amber-400"></i> Visor del símbolo
+                        </h3>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-400 border border-emerald-800/50 font-mono">CARGADO</span>
+                    </div>
+                    <div class="text-[11px] text-gray-500 font-mono space-x-2">
+                        <span>ORIGEN_MASTER</span> • <span>glTF 2.0</span> • <span>immutable</span>
+                    </div>
+                </div>
+
+                <!-- Telemetry Row -->
+                <div class="px-6 grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                        <div class="text-amber-400 text-xs font-bold"><i class="fa-solid fa-wave-square mr-1"></i>1</div>
+                        <div class="text-[9px] text-gray-500 uppercase">FPS</div>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                        <div class="text-gray-300 text-xs font-bold"><i class="fa-regular fa-circle-dot mr-1"></i>3</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Calls</div>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                        <div class="text-gray-300 text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>4.1k</div>
+                        <div class="text-[9px] text-gray-500 uppercase">Tris</div>
+                    </div>
+                </div>
+
+                <!-- Action Grid -->
+                <div class="px-6 grid grid-cols-3 gap-2 mb-6">
+                    <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group">
+                        <i class="fa-solid fa-rotate-left mb-1 text-gray-400 group-hover:text-white"></i>
+                        <span class="text-[10px] text-gray-400 group-hover:text-white">Vista</span>
+                    </button>
+                    <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group">
+                        <i class="fa-solid fa-camera mb-1 text-gray-400 group-hover:text-white"></i>
+                        <span class="text-[10px] text-gray-400 group-hover:text-white">Captura</span>
+                    </button>
+                    <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group">
+                        <i class="fa-solid fa-chart-simple mb-1 text-gray-400 group-hover:text-white"></i>
+                        <span class="text-[10px] text-gray-400 group-hover:text-white">Atajos</span>
+                    </button>
+                </div>
+
+                <!-- Scrollable Controls -->
+                <div class="flex-1 overflow-y-auto px-6 pb-6 space-y-6 custom-scrollbar">
+                    
+                    <!-- Season Toggle -->
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block">Estación</label>
+                        <div class="flex bg-black/30 p-1 rounded-lg border border-white/5">
+                            <button id="btn-summer" onclick="setSeason('summer')" class="flex-1 py-1.5 rounded-md text-xs font-semibold bg-amber-600/90 text-white shadow-sm transition-all">☀️ Verano</button>
+                            <button id="btn-winter" onclick="setSeason('winter')" class="flex-1 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition-all">❄️ Invierno</button>
+                        </div>
+                    </div>
+
+                    <!-- LOD Control -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Nivel de Detalle</label>
+                            <span class="text-[10px] text-gray-600 font-mono">LOD</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="lod-btn flex-1 py-1.5 rounded bg-amber-900/30 text-amber-200 text-xs font-bold border border-amber-800/50">Master</button>
+                            <button class="lod-btn flex-1 py-1.5 rounded bg-white/5 text-gray-400 text-xs font-medium border border-white/5 hover:bg-white/10">LOD 1</button>
+                            <button class="lod-btn flex-1 py-1.5 rounded bg-white/5 text-gray-400 text-xs font-medium border border-white/5 hover:bg-white/10">LOD 2</button>
+                        </div>
+                        <div class="mt-2 text-[10px] text-gray-500 font-mono">2.8k • 1.8k • 1.2k vertices</div>
+                    </div>
+
+                    <!-- Toggles List -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between group cursor-pointer" onclick="this.querySelector('input').click()">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-border-all w-4 text-center text-gray-500 group-hover:text-white"></i>
+                                <span class="text-sm text-gray-300 group-hover:text-white">Wireframe</span>
+                                <span class="text-[9px] text-gray-600 border border-white/10 px-1 rounded">W</span>
+                            </div>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggle-wireframe" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer right-0"/>
+                                <label for="toggle-wireframe" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-palette w-4 text-center text-gray-500 group-hover:text-white"></i>
+                                <span class="text-sm text-gray-300 group-hover:text-white">Color vértice (piedra)</span>
+                                <span class="text-[9px] text-gray-600 border border-white/10 px-1 rounded">V</span>
+                            </div>
+                             <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggle-vert" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer right-0"/>
+                                <label for="toggle-vert" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                         <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-eye w-4 text-center text-gray-500 group-hover:text-white"></i>
+                                <span class="text-sm text-gray-300 group-hover:text-white">Panorama de fondo</span>
+                                <span class="text-[9px] text-gray-600 border border-white/10 px-1 rounded">B</span>
+                            </div>
+                             <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" checked name="toggle" id="toggle-bg" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer right-0"/>
+                                <label for="toggle-bg" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                            </div>
+                        </div>
+
+                         <div class="flex items-center justify-between group cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-rotate w-4 text-center text-gray-500 group-hover:text-white"></i>
+                                <span class="text-sm text-gray-300 group-hover:text-white">Auto-órbita</span>
+                                <span class="text-[9px] text-gray-600 border border-white/10 px-1 rounded">A</span>
+                            </div>
+                             <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggle-orbit" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer right-0"/>
+                                <label for="toggle-orbit" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sliders -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Aspereza</label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-gray-400 font-mono">auto</span>
+                                <span class="text-[10px] text-gray-400 font-mono">• 0.86</span>
+                            </div>
+                        </div>
+                        <input type="range" min="0" max="1" step="0.01" value="0.86" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    </div>
+
+                     <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Intensidad Entorno</label>
+                            <span class="text-[10px] text-gray-400 font-mono">0.85</span>
+                        </div>
+                        <input type="range" min="0" max="1" step="0.01" value="0.85" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    </div>
+
+                </div>
+            </aside>
+
+            <!-- Close Sidebar Button (Mobile/Desktop helper) -->
+             <button class="absolute top-1/2 -right-3 w-6 h-12 bg-gray-800 rounded-r-lg border border-l-0 border-white/10 flex items-center justify-center text-gray-500 hover:text-white z-50 hidden">
+                 <i class="fa-solid fa-chevron-right text-xs"></i>
+             </button>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="relative z-20 px-6 py-4 flex flex-wrap justify-between items-center bg-gradient-to-t from-black/80 to-transparent pointer-events-auto">
+            
+            <div class="flex items-center gap-4 text-xs text-gray-400 mb-2 md:mb-0">
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-copyright"></i> ORIGEN
+                </div>
+                <div class="hidden sm:block">Sierra de Albarracín • Teruel • España</div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex bg-black/40 rounded-full p-1 border border-white/10">
+                    <button id="foot-summer" onclick="setSeason('summer')" class="px-4 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow">Verano</button>
+                    <button id="foot-winter" onclick="setSeason('winter')" class="px-4 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white">Invierno</button>
+                </div>
+
+                <div class="hidden md:flex items-center gap-3 text-[10px] font-mono text-gray-500 pl-4 border-l border-white/10">
+                    <span>Three.js r3F</span>
+                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                    <span><i class="fa-brands fa-react"></i></span>
+                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                    <span><i class="fa-solid fa-glass-cheers"></i></span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Logic Script -->
+    <script>
+        // --- Three.js Scene Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // Camera
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 6);
+
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffccaa, 1.2);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // Geometry (The "Monolith")
+        // Using a composite shape to match the "Arch" look in the screenshot roughly
+        const group = new THREE.Group();
+
+        // Base
+        const baseGeo = new THREE.CylinderGeometry(1.2, 1.4, 0.5, 32);
+        const matStone = new THREE.MeshStandardMaterial({ 
+            color: 0xf0e6d2, 
+            roughness: 0.85, 
+            metalness: 0.05,
+            flatShading: false
+        });
+        const base = new THREE.Mesh(baseGeo, matStone);
+        base.position.y = -1.25;
+        group.add(base);
+
+        // Main Body (Extruded shape approximation)
+        const shape = new THREE.Shape();
+        shape.moveTo(-0.8, -1);
+        shape.lineTo(-0.8, 1.5);
+        shape.lineTo(-0.3, 1.5);
+        shape.lineTo(-0.3, -0.2); // Inner arch left
+        shape.lineTo(0.3, -0.2);  // Inner arch right
+        shape.lineTo(0.3, 1.5);
+        shape.lineTo(0.8, 1.5);
+        shape.lineTo(0.8, -1);
+        shape.lineTo(0.8, -1);
+        shape.lineTo(-0.8, -1);
+
+        const extrudeSettings = { depth: 1.0, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 8 };
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        geometry.center();
+        
+        // Rotate to stand up
+        const mesh = new THREE.Mesh(geometry, matStone);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.position.y = 0.2;
+        group.add(mesh);
+
+        scene.add(group);
+
+        // Dust Particles System (Summer Effect)
+        let dustParticles;
+        const particleCount = 150;
+        const particlesGeom = new THREE.BufferGeometry();
+        const posArray = new Float32Array(particleCount * 3);
+        
+        for(let i = 0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 10;
+        }
+        
+        particlesGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.03,
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        dustParticles = new THREE.Points(particlesGeom, particlesMat);
+        scene.add(dustParticles);
+
+
+        // --- Interaction Logic ---
+
+        // Season Toggle
+        function setSeason(season) {
+            const btnS = document.getElementById('btn-summer');
+            const btnW = document.getElementById('btn-winter');
+            const footS = document.getElementById('foot-summer');
+            const footW = document.getElementById('foot-winter');
+
+            if (season === 'summer') {
+                // Visuals
+                dirLight.color.setHex(0xffccaa);
+                dirLight.intensity = 1.2;
+                ambientLight.intensity = 0.6;
+                dustParticles.visible = true;
+                renderer.setClearColor(0x1a0f0a, 0); // Warm dark bg hint
+
+                // UI State
+                btnS.className = "flex-1 py-1.5 rounded-md text-xs font-semibold bg-amber-600/90 text-white shadow-sm transition-all";
+                btnW.className = "flex-1 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition-all";
+                footS.className = "px-4 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow";
+                footW.className = "px-4 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white";
+
+            } else {
+                // Winter
+                dirLight.color.setHex(0xaaccff);
+                dirLight.intensity = 0.8;
+                ambientLight.intensity = 0.4;
+                dustParticles.visible = false;
+                renderer.setClearColor(0x0a0f1a, 0); // Cool dark bg
+
+                // UI State
+                btnW.className = "flex-1 py-1.5 rounded-md text-xs font-semibold bg-blue-600/90 text-white shadow-sm transition-all";
+                btnS.className = "flex-1 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition-all";
+                footW.className = "px-4 py-1 rounded-full text-xs font-bold bg-blue-600 text-white shadow";
+                footS.className = "px-4 py-1 rounded-full text-xs font-bold text-gray-400 hover:text-white";
+            }
+        }
+
+        // Info Card Toggle
+        function toggleInfoCard() {
+            const card = document.getElementById('info-card');
+            if(card.style.opacity === '0') {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+                card.style.pointerEvents = 'auto';
+            } else {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.pointerEvents = 'none';
+            }
+        }
+
+        // Camera Presets
+        function setCamera(view) {
+            // Simple animation logic could go here, using GSAP or similar, but we'll do instant for vanilla
+            const buttons = document.querySelectorAll('.preset-btn');
+            buttons.forEach(b => {
+                b.classList.remove('bg-amber-600/80', 'text-white', 'shadow-md');
+                b.classList.add('text-gray-300');
+            });
+            event.currentTarget.classList.remove('text-gray-300');
+            event.currentTarget.classList.add('bg-amber-600/80', 'text-white', 'shadow-md');
+
+            if(view === 'hero') { camera.position.set(0, 2, 6); camera.lookAt(0,0,0); }
+            else if(view === 'front') { camera.position.set(0, 0, 5); camera.lookAt(0,0,0); }
+            else if(view === 'side') { camera.position.set(5, 0, 0); camera.lookAt(0,0,0); }
+            else if(view === 'top') { camera.position.set(0, 6, 0.1); camera.lookAt(0,0,0); } // Cenital
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Gentle rotation
+            group.rotation.y += 0.002;
+
+            // Dust movement
+            if(dustParticles.visible) {
+                const positions = dustParticles.geometry.attributes.position.array;
+                for(let i=0; i<particleCount; i++) {
+                    positions[i*3+1] += 0.005; // Float up
+                    positions[i*3] += Math.sin(Date.now() * 0.001 + i) * 0.002; // Drift
+                    if(positions[i*3+1] > 5) positions[i*3+1] = -5; // Reset
+                }
+                dustParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        setSeason('summer'); // Default state
+        animate();
+
+    </script>
+</body>
+</html>
+```

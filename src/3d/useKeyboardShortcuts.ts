@@ -11,13 +11,16 @@
  *   R           → reset view
  *   C           → capture PNG
  *   V           → toggle vertex colors
+ *   P           → cycle camera preset (front → hero → side → top)
+ *   F           → toggle fullscreen
+ *   L           → copy share link (URL hash encodes current state)
  *   ? / H       → toggle shortcuts overlay
- *   Esc         → close any overlay
+ *   Esc         → close any overlay / exit fullscreen
  *
  * Ignores keystrokes when the user is typing in an input/textarea/contenteditable.
  */
 import { useEffect } from 'react';
-import { useMaterialStore } from '@/3d/materialViewer';
+import { useMaterialStore, type CameraPreset } from '@/3d/materialViewer';
 
 function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -30,6 +33,8 @@ function isTyping(target: EventTarget | null): boolean {
     el.isContentEditable
   );
 }
+
+const PRESET_ORDER: CameraPreset[] = ['hero', 'front', 'side', 'top'];
 
 export function useKeyboardShortcuts() {
   const s = useMaterialStore();
@@ -71,6 +76,19 @@ export function useKeyboardShortcuts() {
         case 'c':
           s.capture();
           break;
+        case 'p':
+          {
+            const idx = PRESET_ORDER.indexOf(s.cameraPreset);
+            const next = PRESET_ORDER[(idx + 1) % PRESET_ORDER.length];
+            s.applyCameraPreset(next);
+          }
+          break;
+        case 'f':
+          s.setFullscreen(!s.fullscreen);
+          break;
+        case 'l':
+          s.share();
+          break;
         case '?':
         case 'h':
           s.toggleShortcuts();
@@ -78,6 +96,8 @@ export function useKeyboardShortcuts() {
         case 'escape':
           if (s.showShortcuts) s.toggleShortcuts();
           if (s.showConcept) s.closeConcept();
+          if (s.showMobileInfo) s.toggleMobileInfo();
+          if (s.fullscreen) s.setFullscreen(false);
           break;
         default:
           return;

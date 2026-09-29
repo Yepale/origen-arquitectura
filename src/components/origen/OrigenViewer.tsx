@@ -2,11 +2,12 @@
 /**
  * OrigenViewer.tsx — R3F Canvas wrapper for the ORIGEN master symbol.
  *
- * Hosts: scene manager (lights + env + fog), camera rig (with reset-view
- * signal), the assembled composition (pedestal + symbol, with entrance
- * animation + capture + telemetry), and a transparent canvas so the CSS
- * panoramic backdrop shows through. Fog blends the monolith base into the
- * panorama haze.
+ * Hosts: scene manager (lights + env + fog), atmospheric particle layer
+ * (dust motes in summer / snowfall in winter), camera rig (with reset-view
+ * + cinematic presets), the assembled composition (pedestal + symbol,
+ * with entrance animation + capture + telemetry), and a transparent
+ * canvas so the CSS panoramic backdrop shows through. Fog blends the
+ * monolith base into the panorama haze.
  *
  * Shadow type is set to PCFShadowMap explicitly (three 0.186 removed
  * PCFSoftShadowMap, which R3F's `shadows` boolean defaults to — that
@@ -19,6 +20,7 @@ import * as THREE from 'three';
 import { SceneManager, type Season } from '@/3d/sceneManager';
 import { CameraRig } from '@/3d/cameraRig';
 import { OrigenComposition, type CompositionInfo } from './OrigenComposition';
+import { Atmosphere } from './Atmosphere';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { OrigenLoader } from './OrigenLoader';
 
@@ -26,6 +28,8 @@ export function OrigenViewer() {
   const season = useMaterialStore((s) => s.season);
   const autoRotate = useMaterialStore((s) => s.autoRotate);
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
+  const cameraPresetSignal = useMaterialStore((s) => s.cameraPresetSignal);
+  const cameraPreset = useMaterialStore((s) => s.cameraPreset);
   const [info, setInfo] = useState<CompositionInfo | null>(null);
   const onLoaded = useCallback((i: CompositionInfo) => setInfo(i), []);
 
@@ -45,12 +49,15 @@ export function OrigenViewer() {
     >
       <Suspense fallback={<OrigenLoader />}>
         <SceneManager season={season as Season} />
+        <Atmosphere season={season as Season} />
         {info && (
           <CameraRig
             compositionHeight={info.compositionHeight}
             compositionWidth={info.compositionWidth}
             autoRotate={autoRotate}
             resetViewSignal={resetViewSignal}
+            cameraPresetSignal={cameraPresetSignal}
+            cameraPreset={cameraPreset}
           />
         )}
         <OrigenComposition onLoaded={onLoaded} />

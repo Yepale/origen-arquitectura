@@ -3,15 +3,18 @@
  *
  * Camera + framing + orbit controls for the ORIGEN viewer.
  * Declarative framing from composition dimensions; OrbitControls for user
- * interaction. Supports an external "reset view" signal: when the counter
- * increments, the camera returns to its default framed position.
+ * interaction. Supports:
+ *   - resetViewSignal: snap back to the default framed pose.
+ *   - cameraPresetSignal: snap to a named cinematic pose (hero / front /
+ *     side / top). The target stays on the composition center; only the
+ *     azimuth / elevation / distance change.
  *
- * No direct mutation of the R3F camera outside of effect-driven resets, so
- * the react-hooks/immutability rule stays satisfied.
+ * Damping is briefly disabled during snaps so they're instant.
  */
 import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useEffect, useMemo, useRef } from 'react';
+import type { CameraPreset } from '@/3d/materialViewer';
 
 export interface CameraRigProps {
   compositionHeight: number;
@@ -20,6 +23,9 @@ export interface CameraRigProps {
   autoRotateSpeed?: number;
   /** Increment to reset the camera to its default framed pose. */
   resetViewSignal: number;
+  /** Increment to apply `cameraPreset`. */
+  cameraPresetSignal: number;
+  cameraPreset: CameraPreset;
 }
 
 /** Comfortable camera distance to fit a target box at a given fov & aspect. */
@@ -36,12 +42,39 @@ function defaultPosition(h: number, w: number, targetY: number): [number, number
   return [dist * 0.55, targetY + h * 0.18, dist];
 }
 
+/** Compute a named cinematic camera position around the composition. */
+function presetPosition(
+  preset: CameraPreset,
+  h: number,
+  w: number,
+  targetY: number
+): [number, number, number] {
+  const dist = frameDistance(h, w, 38, 16 / 9);
+  switch (preset) {
+    case 'front':
+      // dead-on front, slightly lower
+      return [0, targetY + h * 0.05, dist * 0.95];
+    case 'side':
+      // profile, eye-level with the apex
+      return [dist * 0.95, targetY + h * 0.1, 0.001];
+    case 'top':
+      // high angle looking down
+      return [0.001, targetY + dist * 1.1, 0.001];
+    case 'hero':
+    default:
+      // classic 3-quarter hero view
+      return [dist * 0.62, targetY + h * 0.22, dist * 0.78];
+  }
+}
+
 export function CameraRig({
   compositionHeight,
   compositionWidth,
   autoRotate,
   autoRotateSpeed = 0.6,
   resetViewSignal,
+  cameraPresetSignal,
+  cameraPreset,
 }: CameraRigProps) {
   const targetY = compositionHeight * 0.52;
   const controlsRef = useRef<any>(null);
@@ -52,8 +85,6 @@ export function CameraRig({
   );
 
   // Reset the orbit controls to the default pose whenever the signal changes.
-  // Damping is briefly disabled so the reset snaps instantly (otherwise a
-  // damped ease would take many frames and look stuck in throttled contexts).
   useEffect(() => {
     const c = controlsRef.current;
     if (!c) return;
@@ -65,6 +96,20 @@ export function CameraRig({
     c.update();
     c.enableDamping = wasDamped;
   }, [resetViewSignal, targetY, pos]);
+
+  // Apply a cinematic preset whenever the preset signal changes.
+  useEffect(() => {
+    const c = controlsRef.current;
+    if (!c) return;
+    const p = presetPosition(cameraPreset, compositionHeight, compositionWidth, targetY);
+    const wasDamped = c.enableDamping;
+    c.enableDamping = false;
+    c.target.set(0, targetY, 0);
+    c.object.position.set(p[0], p[1], p[2]);
+    c.object.updateProjectionMatrix?.();
+    c.update();
+    c.enableDamping = wasDamped;
+  }, [cameraPresetSignal, cameraPreset, compositionHeight, compositionWidth, targetY]);
 
   return (
     <>

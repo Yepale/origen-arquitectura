@@ -19,7 +19,7 @@
  *   - Live telemetry (fps / draw calls / triangles).
  */
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mountain,
@@ -36,6 +36,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useKeyboardShortcuts } from '@/3d/useKeyboardShortcuts';
+import { useUrlState, useShareLink } from '@/3d/useUrlState';
 
 // Three.js Canvas must be client-only (no SSR).
 const OrigenViewer = dynamic(
@@ -62,6 +63,10 @@ const ConceptOverlay = dynamic(
   () => import('@/components/origen/ConceptOverlay').then((m) => m.ConceptOverlay),
   { ssr: false }
 );
+const MobileInfoSheet = dynamic(
+  () => import('@/components/origen/MobileInfoSheet').then((m) => m.MobileInfoSheet),
+  { ssr: false }
+);
 
 const SUMMER_LANDSCAPE = '/assets/panoramic/origen_panoramic_summer_16X9.png';
 const SUMMER_PORTRAIT = '/assets/panoramic/origen_panoramic_summer_9X16.png';
@@ -73,9 +78,40 @@ export default function OrigenPage() {
   const showBackdrop = useMaterialStore((s) => s.showBackdrop);
   const setSeason = useMaterialStore((s) => s.setSeason);
   const openConcept = useMaterialStore((s) => s.openConcept);
+  const fullscreen = useMaterialStore((s) => s.fullscreen);
+  const toggleMobileInfo = useMaterialStore((s) => s.toggleMobileInfo);
   const isMobile = useIsMobile();
-  // Wire up global keyboard shortcuts.
+  // Wire up global keyboard shortcuts, URL-hash state sync, and the
+  // share-link clipboard consumer.
   useKeyboardShortcuts();
+  useUrlState();
+  useShareLink();
+
+  // Fullscreen handling: toggle the Fullscreen API on the root container.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (fullscreen) {
+      if (document.fullscreenElement) return; // already fullscreen
+      el.requestFullscreen?.().catch(() => {
+        /* some browsers/iframes disallow — silently ignore */
+      });
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }, [fullscreen]);
+  // Sync the store if the user exits fullscreen via Esc (browser-controlled).
+  useEffect(() => {
+    const onFs = () => {
+      if (!document.fullscreenElement && useMaterialStore.getState().fullscreen) {
+        useMaterialStore.getState().setFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+
 
   // Panels default open on desktop, closed on mobile. The override stores any
   // explicit user choice; otherwise the open state derives from isMobile.
@@ -89,7 +125,7 @@ export default function OrigenPage() {
   const portrait = season === 'summer' ? SUMMER_PORTRAIT : WINTER_PORTRAIT;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-stone-950 text-stone-100">
+    <div ref={rootRef} className="relative flex min-h-screen flex-col overflow-hidden bg-stone-950 text-stone-100">
       <Toaster richColors position="top-center" theme="dark" />
 
       {/* ───────── Seasonal panoramic backdrop ───────── */}
@@ -329,6 +365,13 @@ export default function OrigenPage() {
             </button>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-stone-500">
+            <button
+              onClick={toggleMobileInfo}
+              className="flex items-center gap-1 rounded-full border border-stone-600/40 px-2.5 py-1 text-stone-300 transition hover:bg-stone-800/60 hover:text-amber-200 sm:hidden"
+              aria-label="Información del símbolo"
+            >
+              <Info className="h-3.5 w-3.5" /> Símbolo
+            </button>
             <span className="hidden items-center gap-1.5 sm:flex">
               <span className="font-mono text-stone-400">Three.js</span>
               <span className="text-stone-700">·</span>
@@ -348,6 +391,7 @@ export default function OrigenPage() {
       {/* ───────── Overlays ───────── */}
       <ShortcutsOverlay />
       <ConceptOverlay />
+      <MobileInfoSheet />
     </div>
   );
 }

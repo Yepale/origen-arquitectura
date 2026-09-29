@@ -149,3 +149,83 @@ Project was in a stable, verified state (Phase 1–4 complete). Lint clean, dev 
    - Add a share/copy-link with current view state (LOD/season/material) encoded in the URL hash.
    - Consider a subtle particle/dust motes layer for atmospheric depth in summer.
 
+
+---
+
+## Round 2 — webDevReview (cron #2) · shareable state, cinematic presets & atmosphere
+
+### Current project status / assessment
+Project entered this round in a stable, verified state (Round 1 complete: entrance animation, reset-view, capture, keyboard shortcuts, concept overlay, telemetry, polished styling). Lint clean, dev server healthy (all 200s). Only the harmless `THREE.Clock` deprecation warning remained. No runtime errors. The Round 1 backlog listed: URL state persistence, fullscreen, atmospheric particles, season-aware env tuning, mobile info sheet — all picked up this round.
+
+### Goals for this round
+- Make the viewer state **shareable & bookmarkable** via URL hash.
+- Add **cinematic camera presets** (Hero / Frente / Perfil / Cenital).
+- Add **fullscreen** + an **atmospheric particle layer** (summer dust motes / winter snowfall).
+- Make the experience **season-aware** (env-intensity auto-tunes on season switch).
+- Give mobile a compact **info sheet** (the desktop info card is hidden on small screens).
+- Continue enriching styling & micro-interactions.
+
+### Completed modifications
+**1. URL hash state persistence (`src/3d/useUrlState.ts`)**
+- Bidirectional sync between store state and `location.hash`: `season, lod, wireframe, vertexColors, envIntensity, roughnessOverride, autoRotate, showBackdrop, cameraPreset(view)`.
+- Store→hash: zustand `subscribe` writes the hash via `history.replaceState` (debounced with rAF so slider drags don't thrash history). Unknown/invalid hash values are silently ignored.
+- Hash→store: parsed on mount + on `hashchange` (handles back/forward, manual edits, cross-tab).
+- `useShareLink()` hook consumes the `shareSignal` counter → copies canonical URL to clipboard (`navigator.clipboard` with legacy `execCommand` fallback) → sonner toast "Enlace copiado".
+
+**2. Cinematic camera presets (`src/3d/cameraRig.tsx`)**
+- New `cameraPresetSignal` + `cameraPreset` props. An effect snaps OrbitControls to a named pose (Hero / Frente / Perfil / Cenital) — azimuth/elevation/distance change, target stays on the composition center. Damping briefly disabled for an instant snap.
+- `applyCameraPreset(p)` action increments the signal; `P` cycles through the four presets.
+
+**3. Fullscreen toggle**
+- `fullscreen` boolean + `setFullscreen` action; `F` key toggles; `Esc` exits.
+- Page wires it to the Fullscreen API on a root container ref (`requestFullscreen`/`exitFullscreen`). A `fullscreenchange` listener syncs the store if the user exits via the browser's Esc. Silently catches rejection (headless/iframe contexts disallow it).
+
+**4. Atmospheric particle layer (`src/components/origen/Atmosphere.tsx`)**
+- Single `THREE.Points` system (320 particles) with a procedural radial-gradient canvas texture.
+- **Summer**: warm golden dust motes drifting slowly upward, additively blended → golden-hour haze.
+- **Winter**: cool snowflakes falling, normally blended → soft snowfall.
+- Phase derived from an elapsed-time ref (no mutation of the memoized particle array → keeps `react-hooks/immutability` happy). Wraps around a 9×6.5 volume; billboards toward the camera. Hidden when the backdrop is off.
+
+**5. Season-aware env-intensity (`materialViewer.ts`)**
+- `SEASON_ENV_DEFAULTS` (summer 0.85, winter 0.70). `setSeason` now also resets `envIntensity` to that season's default, so winter reads cooler/dimmer and summer warmer/brighter automatically (the manual slider still overrides until the next season switch).
+
+**6. Mobile info sheet (`src/components/origen/MobileInfoSheet.tsx`)**
+- Bottom sheet (mobile only) with the symbol description, Tierra/Tiempo/Mano concept buttons (open the concept overlay), and the stats grid. Opened via a "Símbolo" button in the footer (visible only on mobile) or the `showMobileInfo` store flag. Spring-animated slide-up, backdrop blur, drag-handle.
+
+**7. Action toolbar redesign (`src/components/origen/ActionToolbar.tsx`)**
+- Added a **camera-preset segmented control** (Hero/Frente/Perfil/Cenital, desktop only) with active-state highlight + icons.
+- Added **Share** (L), **Fullscreen** (F) buttons to the action cluster alongside Reset/Capture/Shortcuts. Each has a `title` tooltip with the kbd hint.
+
+**8. Keyboard shortcuts extended (`src/3d/useKeyboardShortcuts.ts`)**
+- New: `P` cycle camera preset, `F` fullscreen, `L` share link. `Esc` now also closes the mobile info sheet + exits fullscreen. All respect modifier keys & input-focus.
+
+**9. Styling & micro-interactions**
+- Shortcuts overlay updated to list the 3 new shortcuts (P/F/L) + the Esc fullscreen exit.
+- Footer: added a mobile-only "Símbolo" info button next to the tech credits.
+- Root container now carries the `ref` for the Fullscreen API.
+- Preview PNG re-captured and sharp-optimized (1.4 MB → 394 KB).
+
+### Verification results (agent-browser, desktop 1440×900 + mobile 390×844)
+- ✅ No runtime errors; only the harmless `THREE.Clock` deprecation warning.
+- ✅ **URL state persistence**: changing season/LOD/wireframe writes `#season=…&lod=…&view=…` to the hash; reloading **restores the state** (verified: winter + Cenital view persisted across a reload — the shared-link round-trip works end to end).
+- ✅ **Share**: `L` key + Share button → "Enlace copiado" toast appears; canonical URL with hash on clipboard.
+- ✅ **Camera presets**: Hero / Frente (dead-on front, confirmed) / Perfil / Cenital (high-angle top-down, confirmed) all snap correctly; `P` cycles; `view=` synced to hash.
+- ✅ **Fullscreen**: button + `F` key invoke the Fullscreen API without errors (gracefully rejected in headless/iframe); `Esc` syncs the store.
+- ✅ **Atmosphere**: winter snowfall particles visible around the monolith; summer warm dust motes visible in golden-hour light. Both subtle and on-theme.
+- ✅ **Season-aware env**: switching season auto-tunes env intensity (summer 0.85 / winter 0.70) — reflected in the slider + hash.
+- ✅ **Mobile info sheet**: opens from the footer "Símbolo" button, shows description + concept buttons + stats; spring slide-up; Esc closes.
+- ✅ All Round 1 features still working (entrance animation, reset-view, capture, concept overlay, telemetry, shortcuts).
+- ✅ Lint clean (`bun run lint` → 0 errors, 0 warnings); dev server all 200s.
+
+### Unresolved issues / risks & next-phase recommendations
+1. **`THREE.Clock` deprecation** — drei internal; resolves when drei updates. No action.
+2. **Headless rAF throttling** — persists as a test-harness artifact (fps reads low, auto-rotate imperceptible). Real browsers unaffected. The deterministic telemetry (triangles/drawCalls from the scene graph) stays correct regardless.
+3. **Fullscreen in sandbox** — the Fullscreen API is typically blocked in the preview iframe; the code handles rejection silently. In a real top-level browser tab it works.
+4. **`agent-browser` key focus** — after `set viewport`, the first keypress can be swallowed until the page is re-focused (click body). Not a code issue.
+5. **Next-round candidate features**:
+   - Persist & restore the **orbit camera position/distance** (not just the preset) in the URL hash so shared links reproduce an exact framing.
+   - Add a **cinematic auto-tour** mode that gently flies through the presets on a timeline (toggle in the control panel).
+   - Add **audio ambiance**: subtle wind for summer, soft wind + faint snow crunch for winter (muted by default, toggle in footer).
+   - Add a **wireframe + edges** combined view (EdgesGeometry overlay) for a technical-inspection mode.
+   - Add **AccumulativeShadows** or a soft radial gradient blob under the pedestal for stronger grounding on bright winter days.
+   - Add a **"compare seasons" split view** (summer | winter side by side) for a hero/marketing moment.

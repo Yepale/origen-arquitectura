@@ -8,6 +8,7 @@ import { useMaterialStore } from '@/3d/materialViewer';
 
 const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['1', '2', '3'], label: 'Nivel de detalle (Master / LOD 1 / LOD 2)' },
+  { keys: ['P'], label: 'Vista cinematográfica (Hero / Frente / Perfil / Cenital)' },
   { keys: ['W'], label: 'Wireframe' },
   { keys: ['V'], label: 'Color de vértice (piedra)' },
   { keys: ['S'], label: 'Cambiar estación (Verano / Invierno)' },
@@ -15,8 +16,10 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['B'], label: 'Panorama de fondo' },
   { keys: ['R'], label: 'Restablecer vista' },
   { keys: ['C'], label: 'Capturar PNG' },
+  { keys: ['L'], label: 'Copiar enlace del estado actual' },
+  { keys: ['F'], label: 'Pantalla completa' },
   { keys: ['H', '?'], label: 'Esta ayuda' },
-  { keys: ['Esc'], label: 'Cerrar superposiciones' },
+  { keys: ['Esc'], label: 'Cerrar superposiciones / salir pantalla completa' },
 ];
 
 export function ShortcutsOverlay() {
