@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7a5228">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<title>El Toro de Terriente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700;900&family=UnifrakturMaguntia&family=MedievalSharp&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --perg: #f0e6cc;
+    --perg-dark: #e4d5b0;
+    --tinta: #1e0f04;
+    --tinta-med: #3a1f0a;
+    --tinta-light: #6b3d18;
+    --tinta-fade: rgba(80,42,12,0.55);
+    --lomo: #7a5228;
+    --lomo-dark: #5c3a18;
+    --fondo: #0e0a06;
+    --oro: #b8860b;
+    --oro-claro: #d4a72c;
+    --oro-pálido: rgba(184,134,11,0.5);
+    --vela: #ffb86b;
+    --vela-calida: #ff9b3d;
+    --rojizo: #8b3a1f;
+    --font-manuscrito: 'EB Garamond', 'IM Fell English', Georgia, serif;
+    --font-titulos: 'Cinzel Decorative', 'Cinzel', serif;
+    --font-caligrafico: 'MedievalSharp', 'IM Fell English SC', cursive;
+    --font-gotico: 'UnifrakturMaguntia', 'Cinzel', serif;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--fondo);
+    touch-action: pan-y;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 6px 6px 6px;
+    font-family: var(--font-manuscrito);
+  }
+
+  /* ── LUZ CÁLIDA AMBIENTAL (sin velas) ── */
+  .luz-calida {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 500;
+    mix-blend-mode: soft-light;
+    background:
+      radial-gradient(circle at 50% 35%, rgba(255,220,160,0.18) 0%, rgba(255,220,160,0.06) 28%, transparent 55%),
+      radial-gradient(circle at 50% 50%, transparent 35%, rgba(40,18,4,0.28) 92%);
+  }
+  .luz-calida-2 {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 501;
+    mix-blend-mode: overlay;
+    background: radial-gradient(circle at 50% 45%, rgba(255,210,140,0.10) 0%, transparent 45%);
+    opacity: 0.7;
+  }
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 499;
+    box-shadow: inset 0 0 140px 40px rgba(0,0,0,0.5);
+  }
+
+  /* ── LIBRO ── */
+  .libro {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    height: 94dvh;
+    max-height: 94dvh;
+    perspective: 1200px;
+  }
+  .pila {
+    position: absolute;
+    inset: 0;
+    border-radius: 3px 10px 10px 3px;
+    background: var(--perg-dark);
+    border-left: 5px solid var(--lomo-dark);
+  }
+  .pila-1 { transform: translate(3px, 3px); opacity: .7; }
+  .pila-2 { transform: translate(6px, 6px); opacity: .4; }
+
+  .pagina {
+    position: relative;
+    z-index: 10;
+    background: var(--perg);
+    border-radius: 3px 10px 10px 3px;
+    border-left: 6px solid var(--lomo);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow:
+      inset -3px 0 10px rgba(0,0,0,0.09),
+      inset 0 0 60px rgba(120,80,30,0.18),
+      5px 5px 20px rgba(0,0,0,0.6),
+      0 0 40px rgba(0,0,0,0.3);
+    background-image:
+      repeating-linear-gradient(0deg,
+        transparent, transparent 29px,
+        rgba(140,100,40,0.08) 29px, rgba(140,100,40,0.08) 30px),
+      radial-gradient(circle at 15% 25%, rgba(170,110,40,0.08) 0%, transparent 8%),
+      radial-gradient(circle at 75% 65%, rgba(130,80,30,0.07) 0%, transparent 7%),
+      radial-gradient(circle at 45% 85%, rgba(160,90,30,0.06) 0%, transparent 6%);
+    transform-origin: left center;
+    transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.28s;
+    will-change: transform, opacity;
+  }
+  .pagina::before {
+    content: '';
+    position: absolute;
+    top: 4px; right: 4px; bottom: 4px; left: 10px;
+    border: 1px solid rgba(120,75,25,0.22);
+    border-radius: 2px 8px 8px 2px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .pagina::after {
+    content: '';
+    position: absolute;
+    top: 7px; right: 7px; bottom: 7px; left: 13px;
+    border: 1px dashed rgba(120,75,25,0.12);
+    border-radius: 1px 6px 6px 2px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .pagina.salir-izq { animation: salirIzq 0.26s cubic-bezier(.4,0,1,1) forwards; }
+  .pagina.salir-der { animation: salirDer 0.26s cubic-bezier(.4,0,1,1) forwards; }
+  .pagina.entrar-izq { animation: entrarIzq 0.28s cubic-bezier(0,0,.2,1) forwards; }
+  .pagina.entrar-der { animation: entrarDer 0.28s cubic-bezier(0,0,.2,1) forwards; }
+
+  @keyframes salirIzq { to { transform: rotateY(-12deg) scaleX(0.94) translateX(-8px); opacity: 0; } }
+  @keyframes salirDer { to { transform: rotateY(12deg) scaleX(0.94) translateX(8px); opacity: 0; } }
+  @keyframes entrarIzq { from { transform: rotateY(10deg) scaleX(0.95) translateX(10px); opacity: 0; } to { transform: rotateY(0) scaleX(1) translateX(0); opacity: 1; } }
+  @keyframes entrarDer { from { transform: rotateY(-10deg) scaleX(0.95) translateX(-10px); opacity: 0; } to { transform: rotateY(0) scaleX(1) translateX(0); opacity: 1; } }
+
+  .cabecera {
+    padding: 12px 18px 8px;
+    text-align: center;
+    border-bottom: 1px solid rgba(100,65,20,0.25);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .cabecera::after {
+    content: '❦';
+    position: absolute;
+    left: 50%; bottom: -8px;
+    transform: translateX(-50%);
+    background: var(--perg);
+    padding: 0 6px;
+    color: rgba(120,70,25,0.55);
+    font-size: 0.7rem;
+  }
+  .orn { display: block; font-size: 0.85rem; letter-spacing: 0.55rem; color: rgba(100,58,18,0.45); margin-bottom: 4px; user-select: none; }
+  .cap-label {
+    font-family: var(--font-titulos);
+    font-size: 0.6rem;
+    letter-spacing: 0.28rem;
+    color: var(--tinta-light);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .cuerpo {
+    flex: 1;
+    padding: 14px 22px 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .contenido {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+  }
+
+  .portada-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; gap: 12px; text-align: center; padding: 6px 0;
+  }
+  .portada-orn { font-size: 2.4rem; color: rgba(90,50,15,0.3); letter-spacing: 0.3rem; }
+  .portada-linea { width: 52px; height: 1px; background: linear-gradient(to right, transparent, rgba(100,60,20,0.45), transparent); }
+  .portada-titulo {
+    font-family: var(--font-gotico);
+    font-size: clamp(1.7rem, 7vw, 2.1rem);
+    font-weight: 400;
+    color: var(--tinta);
+    line-height: 1.15;
+    text-shadow: 0 0 1px rgba(184,134,11,0.4), 1px 1px 0 rgba(60,30,8,0.15);
+  }
+  .portada-sub { font-family: var(--font-manuscrito); font-style: italic; font-size: 0.92rem; color: var(--tinta-light); line-height: 1.65; }
+  .portada-datos { font-family: var(--font-titulos); font-size: 0.58rem; letter-spacing: 0.16rem; color: rgba(80,48,18,0.55); line-height: 2; }
+
+  .cap-titulo {
+    font-family: var(--font-gotico);
+    font-size: clamp(1.05rem, 2.2vh + 0.6rem, 1.35rem);
+    font-weight: 400;
+    color: var(--tinta);
+    text-align: center;
+    margin-bottom: 10px;
+    line-height: 1.25;
+    text-shadow: 0 0 1px rgba(184,134,11,0.35);
+  }
+  .cap-titulo .cap-num {
+    display: block;
+    font-family: var(--font-titulos);
+    font-size: 0.6em;
+    letter-spacing: 0.3rem;
+    color: var(--oro);
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .texto {
+    font-family: var(--font-manuscrito);
+    font-size: clamp(0.82rem, 1.5vh + 0.5rem, 1rem);
+    line-height: 1.7;
+    color: var(--tinta-med);
+  }
+  .texto p { margin-bottom: 8px; text-align: justify; hyphens: auto; text-indent: 1.2em; }
+  .texto p:first-of-type { text-indent: 0; }
+  .texto p:last-child { margin-bottom: 0; }
+
+  .lc {
+    float: left;
+    font-family: var(--font-gotico);
+    font-size: clamp(2.6rem, 5.5vh + 0.6rem, 3.4rem);
+    font-weight: 400;
+    line-height: 0.85;
+    margin: 0.1rem 0.4rem 0 0;
+    color: var(--rojizo);
+    text-shadow: -1px -1px 0 var(--oro-claro), 1px 1px 1px rgba(60,30,5,0.3), 0 0 6px rgba(212,167,44,0.25);
+    padding: 2px 4px 2px 0;
+  }
+  .lc-oro {
+    background: linear-gradient(135deg, #f5d76e 0%, #b8860b 30%, #d4a72c 50%, #8b6914 70%, #f5d76e 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    text-shadow: 1px 1px 1px rgba(60,30,5,0.4), -1px -1px 1px rgba(245,215,110,0.3);
+    filter: drop-shadow(0 0 2px rgba(212,167,44,0.5));
+  }
+
+  .cita {
+    border-left: 3px double rgba(100,58,18,0.4);
+    margin: 9px 0;
+    padding: 5px 12px;
+    font-family: var(--font-manuscrito);
+    font-style: italic;
+    font-size: 0.95em;
+    color: var(--tinta-light);
+    line-height: 1.55;
+    background: rgba(160,110,50,0.05);
+  }
+
+  .nota-hist {
+    background: rgba(160,110,50,0.1);
+    border: 1px solid rgba(140,90,40,0.3);
+    border-radius: 2px;
+    padding: 7px 11px;
+    font-family: var(--font-manuscrito);
+    font-size: 0.85em;
+    color: var(--tinta-light);
+    line-height: 1.5;
+    margin-top: 9px;
+    font-style: italic;
+    position: relative;
+  }
+  .nota-hist::before {
+    content: '*/';
+    position: absolute;
+    top: -2px; left: 6px;
+    background: var(--perg);
+    padding: 0 4px;
+    color: var(--oro);
+    font-style: normal;
+    font-weight: 700;
+    font-family: var(--font-titulos);
+    font-size: 0.7em;
+  }
+
+  .sep { text-align: center; color: rgba(100,58,18,0.35); letter-spacing: 0.55rem; font-size: 0.75rem; margin: 8px 0; user-select: none; }
+
+  .ilustracion {
+    margin: 6px auto 8px;
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    border: 1px solid rgba(120,75,25,0.4);
+    padding: 3px;
+    background: #f5e8c3;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.25), inset 0 0 8px rgba(120,80,30,0.15);
+    filter: sepia(0.35) contrast(1.05);
+    position: relative;
+    min-height: 80px;
+  }
+  .ilustracion img { width: 100%; height: auto; display: block; }
+  /* Placeholder visible mientras carga o si falla */
+  .ilustracion-loading {
+    position: absolute;
+    inset: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tinta-light);
+    font-family: var(--font-titulos);
+    font-size: 0.6rem;
+    letter-spacing: 0.1rem;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .pie {
+    padding: 7px 14px 9px;
+    border-top: 1px solid rgba(100,65,20,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  .pie-izq { display: flex; align-items: center; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
+  .btn-audio, .btn-extra {
+    background: transparent;
+    border: 1px solid rgba(100,58,18,0.28);
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    color: var(--tinta-light);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, color 0.15s;
+    touch-action: manipulation;
+    padding: 0;
+    line-height: 1;
+  }
+  .btn-audio:active, .btn-extra:active { background: rgba(100,58,18,0.18); }
+  .btn-audio.activo, .btn-extra.activo { background: var(--tinta-light); color: var(--perg); border-color: var(--tinta-light); }
+  .btn-audio.inactivo, .btn-extra.inactivo { opacity: 0.4; }
+  .btn-mapa { background: rgba(184,134,11,0.15); border-color: var(--oro); color: var(--oro); }
+  .btn-mapa:active { background: rgba(184,134,11,0.3); }
+
+  .num-pagina { font-family: var(--font-titulos); font-size: 0.62rem; color: rgba(100,58,18,0.5); letter-spacing: 0.1rem; min-width: 24px; text-align: center; }
+
+  .progreso { display: flex; gap: 5px; align-items: center; }
+  .prog-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(100,58,18,0.2); transition: background 0.2s, transform 0.2s; }
+  .prog-dot.activo { background: var(--tinta-light); transform: scale(1.35); }
+
+  .nav-btns { display: flex; gap: 6px; }
+  .btn-nav {
+    background: rgba(100,58,18,0.1);
+    border: 1px solid rgba(100,58,18,0.28);
+    border-radius: 3px;
+    padding: 6px 13px;
+    font-family: var(--font-titulos);
+    font-size: 0.65rem;
+    color: var(--tinta-light);
+    cursor: pointer;
+    letter-spacing: 0.06rem;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+    touch-action: manipulation;
+  }
+  .btn-nav:active { background: rgba(100,58,18,0.22); }
+  .btn-nav:disabled { opacity: 0.28; pointer-events: none; }
+
+  .hint {
+    margin-top: 10px;
+    font-family: var(--font-titulos);
+    font-size: 0.55rem;
+    letter-spacing: 0.18rem;
+    color: rgba(200,165,110,0.38);
+    text-align: center;
+    transition: opacity 0.4s;
+  }
+  .hint.oculto { opacity: 0; pointer-events: none; }
+
+  .colon-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex: 1; gap: 12px; text-align: center; padding: 6px 0;
+  }
+  .colon-titulo {
+    font-family: var(--font-gotico);
+    font-size: clamp(1.05rem, 2.2vh + 0.5rem, 1.3rem);
+    font-weight: 400;
+    color: var(--tinta);
+    text-shadow: 0 0 1px rgba(184,134,11,0.35);
+  }
+  .colon-texto {
+    font-family: var(--font-manuscrito);
+    font-style: italic;
+    font-size: clamp(0.74rem, 1.5vh + 0.4rem, 0.84rem);
+    color: var(--tinta-light);
+    line-height: 1.7;
+  }
+
+  /* ── OVERLAY BIENVENIDA ── */
+  .overlay-bienvenida {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #1a1208 0%, #050302 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    transition: opacity 0.5s;
+  }
+  .overlay-bienvenida.oculto { opacity: 0; pointer-events: none; }
+  .bienvenida-card {
+    background: var(--perg);
+    border-left: 6px solid var(--lomo);
+    border-radius: 3px 10px 10px 3px;
+    padding: 30px 26px 22px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 5px 5px 30px rgba(0,0,0,0.8);
+    background-image:
+      repeating-linear-gradient(0deg,
+        transparent, transparent 29px,
+        rgba(140,100,40,0.08) 29px, rgba(140,100,40,0.08) 30px);
+  }
+  .bienvenida-card .portada-orn { font-size: 2rem; color: rgba(90,50,15,0.4); letter-spacing: 0.3rem; margin-bottom: 4px; }
+  .bienvenida-card .portada-linea { margin: 6px auto; }
+  .bienvenida-titulo {
+    font-family: var(--font-gotico);
+    font-size: 1.7rem;
+    font-weight: 400;
+    color: var(--tinta);
+    line-height: 1.15;
+    margin: 6px 0 4px;
+    text-shadow: 0 0 1px rgba(184,134,11,0.4);
+  }
+  .bienvenida-sub { font-family: var(--font-manuscrito); font-style: italic; font-size: 0.88rem; color: var(--tinta-light); margin-bottom: 18px; }
+  .bienvenida-opciones { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 18px; text-align: left; }
+  .opcion { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--tinta-med); cursor: pointer; padding: 6px 8px; border-radius: 3px; transition: background 0.15s; }
+  .opcion:hover, .opcion:active { background: rgba(100,58,18,0.08); }
+  .opcion input { width: 16px; height: 16px; accent-color: var(--lomo); cursor: pointer; }
+  .btn-empezar {
+    background: var(--tinta-light);
+    color: var(--perg);
+    border: none;
+    border-radius: 3px;
+    padding: 11px 28px;
+    font-family: var(--font-titulos);
+    font-size: 0.78rem;
+    letter-spacing: 0.16rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+  .btn-empezar:active { background: var(--lomo-dark); }
+  .bienvenida-nota { margin-top: 10px; font-family: var(--font-titulos); font-size: 0.55rem; letter-spacing: 0.18rem; color: rgba(80,48,18,0.5); text-transform: uppercase; }
+
+  .narr-indic {
+    position: absolute;
+    top: 8px; right: 14px;
+    z-index: 20;
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--font-titulos);
+    font-size: 0.5rem;
+    letter-spacing: 0.1rem;
+    color: rgba(100,58,18,0.5);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .narr-indic.visible { opacity: 1; }
+  .narr-onda { display: inline-flex; gap: 2px; align-items: center; height: 10px; }
+  .narr-onda span { display: inline-block; width: 2px; background: var(--tinta-light); border-radius: 1px; animation: narrOnda 1s infinite ease-in-out; }
+  .narr-onda span:nth-child(1) { height: 4px; animation-delay: 0s; }
+  .narr-onda span:nth-child(2) { height: 8px; animation-delay: 0.15s; }
+  .narr-onda span:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+  .narr-onda span:nth-child(4) { height: 10px; animation-delay: 0.45s; }
+  @keyframes narrOnda { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+
+  /* ── BANNER "TOCAR PARA ACTIVAR AUDIO" ── */
+  .audio-prompt {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    background: var(--tinta-light);
+    color: var(--perg);
+    border: 1px solid var(--oro);
+    border-radius: 4px;
+    padding: 10px 18px;
+    font-family: var(--font-titulos);
+    font-size: 0.7rem;
+    letter-spacing: 0.1rem;
+    z-index: 7000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(.2,.7,.3,1.2);
+    -webkit-tap-highlight-color: transparent;
+    text-align: center;
+    max-width: 90vw;
+  }
+  .audio-prompt.visible { transform: translateX(-50%) translateY(0); }
+  .audio-prompt:active { background: var(--lomo-dark); }
+  .audio-prompt::before { content: '♪ '; color: var(--oro-claro); }
+
+  /* ── BARRA DE PROGRESO ── */
+  .barra-progreso {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, var(--oro-claro), var(--oro));
+    z-index: 600;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 8px rgba(212,167,44,0.6);
+  }
+
+  /* ── MODO DÍA ── */
+  body.modo-dia { background: #1a1410; }
+  body.modo-dia .luz-calida, body.modo-dia .luz-calida-2 { display: none; }
+  body.modo-dia .vignette { box-shadow: inset 0 0 90px 25px rgba(0,0,0,0.35); }
+
+  /* ── TAMAÑO DE TEXTO ── */
+  body.texto-grande .texto { font-size: clamp(0.95rem, 1.7vh + 0.55rem, 1.12rem) !important; line-height: 1.75 !important; }
+  body.texto-grande .cap-titulo { font-size: clamp(1.15rem, 2.5vh + 0.7rem, 1.5rem) !important; }
+  body.texto-pequeno .texto { font-size: clamp(0.7rem, 1.2vh + 0.4rem, 0.85rem) !important; line-height: 1.6 !important; }
+  body.texto-pequeno .cap-titulo { font-size: clamp(0.95rem, 1.9vh + 0.55rem, 1.2rem) !important; }
+
+  /* ── GLOSARIO ── */
+  .term-glos {
+    color: var(--rojizo);
+    text-decoration: underline dotted rgba(139,58,31,0.5);
+    text-underline-offset: 2px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .term-glos:active { background: rgba(184,134,11,0.18); }
+  .glosario-popover {
+    position: fixed;
+    background: var(--perg);
+    border: 1px solid var(--oro);
+    border-left: 3px solid var(--oro);
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-family: var(--font-manuscrito);
+    font-size: 0.78rem;
+    color: var(--tinta-med);
+    line-height: 1.5;
+    max-width: 240px;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.4);
+    z-index: 9800;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .glosario-popover.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .glosario-popover .glos-term { font-family: var(--font-gotico); color: var(--tinta); display: block; font-size: 0.95em; margin-bottom: 3px; }
+
+  /* ── NOTAS HISTÓRICAS COLAPSABLES ── */
+  .nota-hist.nota-collapsible {
+    cursor: pointer;
+    padding-left: 22px !important;
+  }
+  .nota-collapsible::after {
+    content: '+';
+    position: absolute;
+    top: 7px; left: 8px;
+    background: var(--perg);
+    padding: 0 4px;
+    color: var(--oro);
+    font-weight: 700;
+    font-family: var(--font-titulos);
+    font-size: 0.9em;
+    line-height: 1;
+  }
+  .nota-collapsible.expandida::after { content: '−'; }
+  .nota-collapsible .nota-contenido { display: block; }
+  .nota-collapsible:not(.expandida) .nota-contenido { display: none; }
+  .nota-collapsible:not(.expandida)::before { content: 'Tocar para leer nota histórica...'; display: block; font-style: italic; color: var(--oro); font-size: 0.85em; opacity: 0.7; }
+
+  /* ── AUTO-PÁGINA INDICADOR ── */
+  .auto-indic {
+    position: absolute;
+    top: 8px; left: 14px;
+    z-index: 20;
+    font-family: var(--font-titulos);
+    font-size: 0.5rem;
+    letter-spacing: 0.1rem;
+    color: var(--oro);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .auto-indic.visible { opacity: 1; }
+  .auto-indic .punto-auto { width: 5px; height: 5px; border-radius: 50%; background: var(--oro); animation: autoPulso 1.2s infinite; }
+  @keyframes autoPulso { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+
+  /* ── MODAL AJUSTES ── */
+  .ajustes-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,5,2,0.7);
+    z-index: 9500;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .ajustes-overlay.visible { opacity: 1; pointer-events: auto; }
+  .ajustes-card {
+    background: var(--perg);
+    border-left: 6px solid var(--lomo);
+    border-radius: 3px 10px 10px 3px;
+    padding: 20px 22px;
+    max-width: 320px; width: 100%;
+    box-shadow: 5px 5px 30px rgba(0,0,0,0.7);
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(140,100,40,0.07) 24px, rgba(140,100,40,0.07) 25px);
+  }
+  .ajustes-titulo { font-family: var(--font-gotico); font-size: 1.1rem; color: var(--tinta); text-align: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid rgba(120,75,25,0.3); }
+  .ajustes-grupo { margin-bottom: 14px; }
+  .ajustes-label { font-family: var(--font-titulos); font-size: 0.55rem; letter-spacing: 0.15rem; color: var(--tinta-light); text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .ajustes-fila { display: flex; gap: 6px; align-items: center; }
+  .ajustes-btn {
+    flex: 1;
+    background: rgba(184,134,11,0.1);
+    border: 1px solid rgba(120,75,25,0.3);
+    border-radius: 3px;
+    padding: 7px 10px;
+    font-family: var(--font-titulos);
+    font-size: 0.6rem;
+    color: var(--tinta-light);
+    cursor: pointer;
+    letter-spacing: 0.08rem;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ajustes-btn.activo { background: var(--oro); color: var(--perg); border-color: var(--oro); }
+  .ajustes-cerrar { display: block; margin: 10px auto 0; background: var(--tinta-light); color: var(--perg); border: none; border-radius: 3px; padding: 8px 22px; font-family: var(--font-titulos); font-size: 0.7rem; letter-spacing: 0.16rem; text-transform: uppercase; cursor: pointer; }
+
+  /* ── MODAL MAPA ── */
+  .mapa-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #1a1208 0%, #050302 100%);
+    z-index: 9000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 12px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .mapa-overlay.visible { opacity: 1; pointer-events: auto; }
+  .mapa-card {
+    position: relative;
+    background: var(--perg);
+    border-left: 6px solid var(--lomo);
+    border-radius: 3px 10px 10px 3px;
+    padding: 14px 14px 10px;
+    max-width: 460px; width: 100%;
+    max-height: 94dvh;
+    overflow: hidden;
+    box-shadow: 5px 5px 30px rgba(0,0,0,0.8), inset 0 0 60px rgba(120,80,30,0.2);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(140,100,40,0.06) 24px, rgba(140,100,40,0.06) 25px),
+      radial-gradient(circle at 18% 22%, rgba(170,110,40,0.1) 0%, transparent 8%),
+      radial-gradient(circle at 78% 70%, rgba(130,80,30,0.08) 0%, transparent 7%);
+  }
+  .mapa-cab { text-align: center; padding-bottom: 8px; border-bottom: 1px solid rgba(120,75,25,0.3); margin-bottom: 8px; }
+  .mapa-titulo { font-family: var(--font-gotico); font-size: clamp(1rem, 2.5vh + 0.5rem, 1.3rem); color: var(--tinta); line-height: 1.2; text-shadow: 0 0 1px rgba(184,134,11,0.4); }
+  .mapa-sub { font-family: var(--font-titulos); font-size: 0.5rem; letter-spacing: 0.18rem; color: var(--oro); text-transform: uppercase; margin-top: 4px; }
+  .mapa-svg-wrap { width: 100%; position: relative; background: rgba(255,240,200,0.18); border: 1px solid rgba(120,75,25,0.3); border-radius: 2px; aspect-ratio: 1 / 1.05; max-height: 55dvh; overflow: hidden; }
+  .mapa-svg-wrap svg { width: 100%; height: 100%; display: block; }
+
+  /* ── MAPA LEAFLET (OpenStreetMap) ── */
+  .mapa-leaflet-wrap {
+    width: 100%;
+    position: relative;
+    border: 1px solid rgba(120,75,25,0.4);
+    border-radius: 3px;
+    aspect-ratio: 1 / 1.05;
+    max-height: 55dvh;
+    overflow: hidden;
+    background: rgba(255,240,200,0.3);
+    box-shadow: inset 0 0 30px rgba(120,80,30,0.25);
+  }
+  #mapa-leaflet { width: 100%; height: 100%; background: rgba(245,232,195,0.4); }
+  /* Filtro vintage sobre los tiles del mapa */
+  .mapa-leaflet-wrap .leaflet-tile-pane {
+    filter: sepia(0.45) saturate(0.85) contrast(1.05) brightness(0.95) hue-rotate(-8deg);
+  }
+  .leaflet-container a { color: var(--rojizo); }
+  .leaflet-popup-content-wrapper {
+    background: var(--perg) !important;
+    border: 1px solid var(--oro) !important;
+    border-left: 3px solid var(--oro) !important;
+    border-radius: 3px !important;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.4) !important;
+    color: var(--tinta-med) !important;
+    font-family: var(--font-manuscrito) !important;
+  }
+  .leaflet-popup-content {
+    margin: 8px 12px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.5 !important;
+    max-width: 220px !important;
+  }
+  .leaflet-popup-content .popup-titulo {
+    font-family: var(--font-gotico);
+    color: var(--tinta);
+    font-size: 0.95rem !important;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .leaflet-popup-tip { background: var(--perg) !important; border: 1px solid var(--oro) !important; }
+  .leaflet-popup-close-button { color: var(--oro) !important; font-size: 18px !important; }
+  .leaflet-control-zoom a {
+    background: var(--perg) !important;
+    color: var(--tinta-light) !important;
+    border: 1px solid rgba(120,75,25,0.4) !important;
+    font-family: var(--font-titulos) !important;
+  }
+  .leaflet-control-zoom a:hover { background: rgba(184,134,11,0.2) !important; }
+  .leaflet-control-attribution {
+    background: rgba(240,230,200,0.85) !important;
+    color: var(--tinta-light) !important;
+    font-family: var(--font-manuscrito) !important;
+    font-size: 0.6rem !important;
+  }
+  .leaflet-control-attribution a { color: var(--rojizo) !important; }
+
+  /* Marcadores personalizados */
+  .marcador-pueblo {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--rojizo);
+    border: 2px solid var(--tinta);
+    box-shadow: 0 0 4px rgba(0,0,0,0.5), inset 0 0 2px rgba(255,200,100,0.6);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .marcador-pueblo:hover, .marcador-pueblo.activo {
+    transform: scale(1.4);
+    background: #b80000;
+    box-shadow: 0 0 8px rgba(184,0,0,0.8), 0 0 16px rgba(212,167,44,0.6);
+  }
+  .marcador-principal {
+    width: 18px; height: 18px;
+    background: #b80000;
+    border: 2px solid var(--oro-claro);
+    box-shadow: 0 0 6px rgba(184,0,0,0.7), 0 0 14px rgba(212,167,44,0.5);
+  }
+  .marcador-principal::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--oro-claro);
+  }
+
+  /* Selector de capa */
+  .mapa-capas {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(240,230,200,0.92);
+    border: 1px solid var(--oro);
+    border-radius: 3px;
+    padding: 4px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+  }
+  .capa-btn {
+    background: transparent;
+    border: 1px solid rgba(120,75,25,0.3);
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-family: var(--font-titulos);
+    font-size: 0.55rem;
+    letter-spacing: 0.08rem;
+    color: var(--tinta-light);
+    cursor: pointer;
+    text-transform: uppercase;
+    text-align: center;
+    min-width: 60px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .capa-btn.activo {
+    background: var(--oro);
+    color: var(--perg);
+    border-color: var(--oro);
+  }
+  .capa-btn:hover { background: rgba(184,134,11,0.2); }
+  .capa-btn.activo:hover { background: var(--oro); }
+  .mapa-pueblo { cursor: pointer; transition: transform 0.15s; }
+  .mapa-pueblo:hover .pueblo-punto, .mapa-pueblo:active .pueblo-punto, .mapa-pueblo.destacado .pueblo-punto { r: 4.5; fill: var(--rojizo); filter: drop-shadow(0 0 4px rgba(139,58,31,0.7)); }
+  .pueblo-punto { fill: var(--rojizo); stroke: var(--tinta); stroke-width: 0.6; transition: r 0.15s, fill 0.15s; }
+  .pueblo-punto.principal { fill: #b80000; r: 4; }
+  .pueblo-etiqueta { font-family: 'IM Fell English', Georgia, serif; font-size: 8px; fill: var(--tinta-med); pointer-events: none; transition: fill 0.15s, font-weight 0.15s; }
+  .pueblo-etiqueta.principal { font-family: var(--font-gotico); font-size: 10px; fill: var(--tinta); font-weight: 700; }
+  .viaje-punto { fill: var(--oro-claro); stroke: var(--tinta); stroke-width: 0.4; filter: drop-shadow(0 0 3px rgba(212,167,44,0.9)); }
+  .camino-activo { stroke: var(--oro-claro) !important; stroke-width: 1.2 !important; stroke-dasharray: none !important; filter: drop-shadow(0 0 2px rgba(212,167,44,0.7)); }
+  .mapa-info { margin-top: 8px; padding: 8px 11px; background: rgba(160,110,50,0.12); border: 1px solid rgba(140,90,40,0.3); border-radius: 2px; font-family: var(--font-manuscrito); font-size: 0.8rem; color: var(--tinta-med); line-height: 1.5; min-height: 56px; font-style: italic; position: relative; }
+  .mapa-info::before { content: '¶'; position: absolute; top: -3px; left: 8px; background: var(--perg); padding: 0 4px; color: var(--oro); font-style: normal; font-weight: 700; font-family: var(--font-titulos); }
+  .mapa-info .nombre-pueblo { font-family: var(--font-gotico); font-style: normal; color: var(--tinta); display: block; margin-bottom: 4px; font-size: 0.95em; }
+  .mapa-cerrar { display: block; margin: 8px auto 0; background: var(--tinta-light); color: var(--perg); border: none; border-radius: 3px; padding: 8px 22px; font-family: var(--font-titulos); font-size: 0.7rem; letter-spacing: 0.16rem; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .mapa-cerrar:active { background: var(--lomo-dark); }
+</style>
+</head>
+<body>
+
+<!-- Capas de luz cálida ambiental (sin velas) -->
+<div class="vignette"></div>
+<div class="luz-calida"></div>
+<div class="luz-calida-2"></div>
+
+<!-- Barra de progreso de lectura -->
+<div class="barra-progreso" id="barra-progreso"></div>
+
+<!-- Banner "tocar para activar audio" (aparece si el navegador bloquea autoplay) -->
+<div class="audio-prompt" id="audio-prompt" onclick="activarAudioManual()">Tocar para activar el audio</div>
+
+<!-- Popover glosario -->
+<div class="glosario-popover" id="glos-popover"><span class="glos-term" id="glos-term"></span><span id="glos-def"></span></div>
+
+<!-- Overlay de bienvenida -->
+<div class="overlay-bienvenida" id="overlay-bienvenida">
+  <div class="bienvenida-card">
+    <div class="portada-orn">✦ ✦ ✦</div>
+    <div class="portada-linea"></div>
+    <div class="bienvenida-titulo">El Toro<br>de Terriente</div>
+    <div class="portada-linea"></div>
+    <div class="bienvenida-sub">Leyenda de la Sierra de Albarracín</div>
+    <div class="bienvenida-opciones">
+      <label class="opcion">
+        <input type="checkbox" id="chk-narr" checked>
+        <span>Narración del relato</span>
+      </label>
+      <label class="opcion">
+        <input type="checkbox" id="chk-amb" checked>
+        <span>Sonido ambiente de la sierra</span>
+      </label>
+    </div>
+    <button class="btn-empezar" onclick="iniciarLibro()">Comenzar</button>
+    <div class="bienvenida-nota">Recomendado con auriculares</div>
+  </div>
+</div>
+
+<!-- Libro -->
+<div class="libro">
+  <div class="pila pila-2"></div>
+  <div class="pila pila-1"></div>
+  <div class="pagina" id="pagina">
+    <div class="narr-indic" id="narr-indic">
+      <span>NARRANDO</span>
+      <span class="narr-onda"><span></span><span></span><span></span><span></span></span>
+    </div>
+    <div class="auto-indic" id="auto-indic">
+      <span class="punto-auto"></span>
+      <span>AUTO</span>
+    </div>
+    <div class="cabecera">
+      <span class="orn">✦ ✦ ✦</span>
+      <span class="cap-label" id="cap-label">Portada</span>
+    </div>
+    <div class="cuerpo" id="cuerpo"></div>
+    <div class="pie">
+      <div class="pie-izq">
+        <button class="btn-audio activo" id="btn-narr" onclick="toggleNarracion()" title="Narración" aria-label="Narración">♪</button>
+        <button class="btn-audio activo" id="btn-amb" onclick="toggleAmbiente()" title="Sonido ambiente" aria-label="Sonido ambiente">≈</button>
+        <button class="btn-audio btn-mapa" id="btn-mapa" onclick="abrirMapa()" title="Mapa" aria-label="Mapa">✤</button>
+        <button class="btn-extra" id="btn-auto" onclick="toggleAutoPagina()" title="Auto-página" aria-label="Auto-página">↻</button>
+        <button class="btn-extra" id="btn-ajustes" onclick="abrirAjustes()" title="Ajustes" aria-label="Ajustes">⚙</button>
+        <span class="num-pagina" id="num-pagina">·</span>
+      </div>
+      <div class="progreso" id="progreso"></div>
+      <div class="nav-btns">
+        <button class="btn-nav" id="btn-prev" onclick="ir(-1)">&#8592;</button>
+        <button class="btn-nav" id="btn-next" onclick="ir(1)">&#8594;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hint" id="hint">desliza para pasar página</div>
+
+<!-- Modal del mapa -->
+<div class="mapa-overlay" id="mapa-overlay">
+  <div class="mapa-card">
+    <div class="mapa-cab">
+      <div class="mapa-titulo">Sierra de Albarracín</div>
+      <div class="mapa-sub">✤ Mapa de la Comunidad ✤</div>
+    </div>
+    <div class="mapa-leaflet-wrap">
+      <div id="mapa-leaflet"></div>
+      <div class="mapa-capas">
+        <button class="capa-btn activo" data-capa="vintage" onclick="cambiarCapa('vintage')">Vintage</button>
+        <button class="capa-btn" data-capa="relieve" onclick="cambiarCapa('relieve')">Relieve</button>
+        <button class="capa-btn" data-capa="acuator" onclick="cambiarCapa('acuator')">Acuarela</button>
+        <button class="capa-btn" data-capa="satelite" onclick="cambiarCapa('satelite')">Satélite</button>
+      </div>
+    </div>
+    <div class="mapa-info" id="mapa-info">
+      <span class="nombre-pueblo">Toca un marcador en el mapa</span>
+      Diez pueblos y aldeas de la sierra aparecen señalados. Toca cualquiera para conocer su relación con esta leyenda y con la historia de la Comunidad de Albarracín. Cambia el estilo del mapa con los botones superiores.
+    </div>
+    <button class="mapa-cerrar" onclick="cerrarMapa()">Volver al libro</button>
+  </div>
+</div>
+
+<!-- Modal de ajustes -->
+<div class="ajustes-overlay" id="ajustes-overlay">
+  <div class="ajustes-card">
+    <div class="ajustes-titulo">Ajustes del libro</div>
+    <div class="ajustes-grupo">
+      <span class="ajustes-label">Tamaño de texto</span>
+      <div class="ajustes-fila">
+        <button class="ajustes-btn" id="btn-tam-s" onclick="setTamanoTexto('pequeno')">Pequeño</button>
+        <button class="ajustes-btn activo" id="btn-tam-m" onclick="setTamanoTexto('normal')">Normal</button>
+        <button class="ajustes-btn" id="btn-tam-l" onclick="setTamanoTexto('grande')">Grande</button>
+      </div>
+    </div>
+    <div class="ajustes-grupo">
+      <span class="ajustes-label">Iluminación</span>
+      <div class="ajustes-fila">
+        <button class="ajustes-btn activo" id="btn-luz-noche" onclick="setModoLuz('noche')">Noche (cálida)</button>
+        <button class="ajustes-btn" id="btn-luz-dia" onclick="setModoLuz('dia')">Día (neutra)</button>
+      </div>
+    </div>
+    <div class="ajustes-grupo">
+      <span class="ajustes-label">Música de fondo</span>
+      <div class="ajustes-fila">
+        <button class="ajustes-btn activo" id="btn-musica-off" onclick="setMusica(false)">Silencio</button>
+        <button class="ajustes-btn" id="btn-musica-on" onclick="setMusica(true)">Laúd medieval</button>
+      </div>
+    </div>
+    <button class="ajustes-cerrar" onclick="cerrarAjustes()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const PAGINAS = [
+  {
+    label: 'Portada',
+    num: '·',
+    html: `
+      <div class="portada-wrap">
+        <div class="portada-orn">✦ ✦ ✦</div>
+        <div class="portada-linea"></div>
+        <div class="portada-titulo">El Toro<br>de Terriente</div>
+        <div class="portada-linea"></div>
+        <div class="portada-sub">Leyenda de la Visitación de la Virgen<br>Sierra de Albarracín</div>
+        <div class="portada-datos">
+          Terriente · Sierra de Albarracín · Teruel
+          Siglo XVI · Segunda aldea más poblada de la sierra<br>
+          ✦<br>
+          Basada en el relato de Rubén Sáez Abad<br>
+          Rehalda nº2 · CECAL · 2005
+        </div>
+      </div>`
+  },
+  {
+    label: 'I · El concejo y el sorteo',
+    num: '1',
+    html: `
+      <div class="cap-titulo"><span class="cap-num">Capítulo I</span>El concejo y el sorteo</div>
+      <div class="ilustracion"><img src="img/ilust-1-concejo.png" alt="Plaza del pueblo" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="ilustracion-loading">✦ Ilustración ✦</span></div>
+      <div class="texto">
+        <p><span class="lc lc-oro">H</span>ubo un tiempo, en los años en que Terriente era aldea de la <span class="term-glos" data-term="comunidad">Comunidad de Albarracín</span> y sus asuntos los gobernaban los jurados del <span class="term-glos" data-term="concejo">concejo</span>, en que el pueblo celebraba sus fiestas de la Visitación de la Virgen sin toros, sin carne y sin alegría verdadera.</p>
+        <p>El dos de julio, cuando las campanas de la iglesia de la Transfiguración llamaban a la plaza, lo que se festejaba era menos que lo que se callaba.</p>
+        <p>El pueblo tenía entonces más de doscientas cuarenta familias — unas ochocientas almas repartidas entre casas de piedra y barro, apretadas contra el barranco a más de mil cuatrocientos metros de altura. Eran suficientes para conocerse todos de nombre, de historia y de deuda. Demasiado pocos para que la desgracia pasara desapercibida.</p>
+        <div class="nota-hist nota-collapsible"><div class="nota-contenido">En 1495 Terriente era la segunda aldea más poblada de la Comunidad, con 328 vecinos. En su momento de mayor auge, en 1619, superaba el millar. Aún en 1900 seguía siendo la más habitada de toda la sierra.</div></div>
+      </div>`
+  },
+  {
+    label: 'II · Los que hacían de toro',
+    num: '2',
+    html: `
+      <div class="cap-titulo"><span class="cap-num">Capítulo II</span>Los que hacían de toro</div>
+      <div class="ilustracion"><img src="img/ilust-2-toro.png" alt="Mozo con cuernos" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="ilustracion-loading">✦ Ilustración ✦</span></div>
+      <div class="texto">
+        <p><span class="lc lc-oro">C</span>ada año, cuando los muchachos cumplían los quince años, los jurados del concejo convocaban el sorteo de la <span class="term-glos" data-term="quinta">quinta</span>. Eran pocos — apenas seis u ocho mozos por leva, pues la sierra se cobraba su parte de niños antes de que llegaran a esa edad.</p>
+        <p>Todos los que sobrevivían a la infancia se conocían desde la cuna. El elegido era siempre el hijo del vecino de enfrente, del primo segundo, del amigo con quien habías corrido el ganado el verano anterior.</p>
+        <p>El pueblo era tan pobre que no había forma de costear reses de lidia. Así nació la costumbre que nadie quería nombrar en voz alta: aquel muchacho sobre quien caía la suerte tenía que hacer de toro. Le ataban cueros en los puños y en la frente, a modo de pitones rudos, y lo empujaban al centro de la plaza.</p>
+        <div class="cita">"No era fiesta. Era el modo que tenía el pueblo de volcar sobre un solo cuerpo joven todo el peso de un año de privación."</div>
+        <p>Si lloraba, lo abucheaban, porque ya era hombre y los hombres de la sierra no lloraban. El rito se prolongaba hasta que oscurecía, o hasta que el elegido no podía más.</p>
+      </div>`
+  },
+  {
+    label: 'III · El año en que todo cambió',
+    num: '3',
+    html: `
+      <div class="cap-titulo"><span class="cap-num">Capítulo III</span>El año en que todo cambió</div>
+      <div class="ilustracion"><img src="img/ilust-3-mencia.png" alt="Doña Mencía" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="ilustracion-loading">✦ Ilustración ✦</span></div>
+      <div class="texto">
+        <p><span class="lc lc-oro">C</span>uentan los más viejos que un dos de julio, cuando el bombo del sorteo estaba ya en la plaza, la suerte señaló a un muchacho llamado Rodrigo. Era hijo único de Doña Mencía — viuda de un ganadero que había sabido manejar las dehesas de la sierra y los tratos con los pastores que bajaban a invernar a tierras valencianas.</p>
+        <p>En Terriente, donde todos sabían cuánto tenía cada uno, nadie ignoraba que Doña Mencía era la mujer más acaudalada del término.</p>
+        <p>Cuando escuchó el nombre de su hijo salir del bombo, no gritó. No lloró. Se quedó quieta como la piedra del barranco, y miró al <span class="term-glos" data-term="alcaide">alcaide</span> con unos ojos que, según dicen, ese hombre no olvidó hasta el día de su muerte.</p>
+        <div class="sep">· · ·</div>
+        <div class="nota-hist nota-collapsible"><div class="nota-contenido">Las familias propietarias de ganado vacuno en Terriente están documentadas desde 1467. En ese año se registra a Antón Martínez de Monteagudo con 160 cabezas. Doña Mencía es el reflejo literario de esas viudas oligarcas que los archivos de la Comunidad recogen en sus registros de hacienda.</div></div>
+      </div>`
+  },
+  {
+    label: 'IV · El precio de la piedad',
+    num: '4',
+    html: `
+      <div class="cap-titulo"><span class="cap-num">Capítulo IV</span>El precio de la piedad</div>
+      <div class="ilustracion"><img src="img/ilust-4-piedad.png" alt="Doña Mencía llamando a una puerta" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="ilustracion-loading">✦ Ilustración ✦</span></div>
+      <div class="texto">
+        <p><span class="lc lc-oro">E</span>sa misma tarde, Doña Mencía fue de casa en casa. Llamó a las puertas sin intermediarios, sin criados. Habló con los jurados, con los hombres del concejo y con las mujeres que mandaban en sus casas, que eran las que verdaderamente mandaban.</p>
+        <p>— Yo pago los toros — dijo —. Toros de verdad, traídos desde tierras bajas, para que el pueblo festeje a la Virgen de la Visitación como corresponde. Y pago la carne para que nadie se quede sin comer. Pero con una condición que no admite regateo: que nunca más, mientras haya memoria en Terriente, ningún muchacho vuelva a ocupar el lugar del toro en esta plaza.</p>
+        <div class="cita">"Hubo quien dijo que era trampa de rica. Hubo quien calló porque recordaba su propio año de sorteo. Y hubo quien simplemente tenía hambre — y el olor a carne asada es argumento suficiente cuando el estómago lleva demasiado tiempo vacío."</div>
+        <p>Los jurados del concejo deliberaron. Aceptaron. Y en ese momento, sin que nadie lo proclamara en voz alta, Terriente cambió para siempre.</p>
+      </div>`
+  },
+  {
+    label: 'V · Lo que quedó',
+    num: '5',
+    html: `
+      <div class="cap-titulo"><span class="cap-num">Capítulo V</span>Lo que quedó</div>
+      <div class="ilustracion"><img src="img/ilust-5-toros.png" alt="Toros bajando por la sierra" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="ilustracion-loading">✦ Ilustración ✦</span></div>
+      <div class="texto">
+        <p><span class="lc lc-oro">A</span>l día siguiente llegaron los toros. Cuatro reses negras que bajaron por el camino de la sierra entre polvo y mugidos, el dos de julio, bajo el sol de la <span class="term-glos" data-term="visitacion">Visitación</span>. La plaza olía a bestia y a expectación.</p>
+        <p>Y los mozos de la quinta, en lugar de temblar en el centro del ruedo, contemplaron desde la barrera cómo la furia tomaba otra forma.</p>
+        <p>Doña Mencía murió años después, dicen que en paz, con Rodrigo a un lado y el sonido de las campanas al otro. No grabaron su nombre en ninguna piedra. Las gentes de Terriente no acostumbraban a esas cosas.</p>
+        <p>La tradición dice que los toros llegaron para honrar a la Madre de Dios. La leyenda, que llegaron para que ningún muchacho volviera a ponerse en su lugar.</p>
+        <p>Y la diferencia entre ambas versiones es, quizás, todo lo que separa una fiesta de una cicatriz.</p>
+      </div>`
+  },
+  {
+    label: 'Colofón',
+    num: '·',
+    html: `
+      <div class="colon-wrap">
+        <div class="portada-orn">✦</div>
+        <div class="portada-linea"></div>
+        <div class="colon-titulo">Fin del relato</div>
+        <div class="portada-linea"></div>
+        <div class="colon-texto">
+          Leyenda recogida de la tradición oral<br>
+          de la Sierra de Albarracín<br><br>
+          Revisada con datos del censo<br>
+          de Sebastián de Utienes (1634)<br>
+          y archivos notariales de la<br>
+          Comunidad de Albarracín<br><br>
+          Basada en el relato de<br>
+          Rubén Sáez Abad<br>
+          <em>Rehalda</em> nº2 · CECAL · 2005
+        </div>
+        <div class="portada-linea"></div>
+        <div class="portada-datos">Terriente · Sierra de Albarracín · Teruel</div>
+      </div>`
+  }
+];
+
+let actual = 0;
+let bloqueado = false;
+
+// ── AUDIO: NARRACIÓN ──
+const NARRACION = [
+  'audio/pag-0-portada.mp3',
+  'audio/pag-1-capitulo-i.mp3',
+  'audio/pag-2-capitulo-ii.mp3',
+  'audio/pag-3-capitulo-iii.mp3',
+  'audio/pag-4-capitulo-iv.mp3',
+  'audio/pag-5-capitulo-v.mp3',
+  'audio/pag-6-colofon.mp3'
+];
+let audioNarr = null;
+let narrActiva = true;
+let narrEmpezada = false;
+
+// ── AUDIO: AMBIENTE ──
+let audioCtx = null;
+let ambientSrc = null;
+let ambientGain = null;
+let ambientActivo = true;
+let ambientIniciado = false;
+
+function iniciarAmbient() {
+  if (ambientIniciado) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const bufferSize = audioCtx.sampleRate * 4;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + 0.02 * white) / 1.02;
+      lastOut = data[i];
+      data[i] *= 3.5;
+    }
+    ambientSrc = audioCtx.createBufferSource();
+    ambientSrc.buffer = buffer;
+    ambientSrc.loop = true;
+    const ambientFilter = audioCtx.createBiquadFilter();
+    ambientFilter.type = 'lowpass';
+    ambientFilter.frequency.value = 380;
+    ambientFilter.Q.value = 0.7;
+    const filterHP = audioCtx.createBiquadFilter();
+    filterHP.type = 'highpass';
+    filterHP.frequency.value = 80;
+    ambientGain = audioCtx.createGain();
+    ambientGain.gain.value = 0.10;
+    const ambientLFO = audioCtx.createOscillator();
+    ambientLFO.frequency.value = 0.08;
+    const ambientLFOGain = audioCtx.createGain();
+    ambientLFOGain.gain.value = 180;
+    ambientLFO.connect(ambientLFOGain);
+    ambientLFOGain.connect(ambientFilter.frequency);
+    ambientSrc.connect(filterHP);
+    filterHP.connect(ambientFilter);
+    ambientFilter.connect(ambientGain);
+    ambientGain.connect(audioCtx.destination);
+    ambientSrc.start();
+    ambientLFO.start();
+    ambientIniciado = true;
+  } catch (e) { console.warn('Ambiente:', e); }
+}
+
+function setAmbienteOn(on) {
+  ambientActivo = on;
+  if (!audioCtx) return;
+  if (on) {
+    ambientGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    ambientGain.gain.linearRampToValueAtTime(0.10, audioCtx.currentTime + 0.4);
+  } else {
+    ambientGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    ambientGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+  }
+  const btn = document.getElementById('btn-amb');
+  if (btn) { btn.classList.toggle('activo', on); btn.classList.toggle('inactivo', !on); }
+}
+
+function toggleAmbiente() { setAmbienteOn(!ambientActivo); }
+
+function cargarNarracion(idx) {
+  if (audioNarr) {
+    audioNarr.pause();
+    audioNarr.src = '';
+    audioNarr = null;
+  }
+  const indic = document.getElementById('narr-indic');
+  if (!narrActiva || !narrEmpezada) {
+    if (indic) indic.classList.remove('visible');
+    return;
+  }
+  if (!NARRACION[idx]) return;
+  audioNarr = new Audio(NARRACION[idx]);
+  audioNarr.volume = 0.95;
+  audioNarr.onplay = () => { if (indic) indic.classList.add('visible'); };
+  audioNarr.onpause = () => { if (indic) indic.classList.remove('visible'); };
+  audioNarr.onended = () => {
+    if (indic) indic.classList.remove('visible');
+    if (autoPagina && actual < PAGINAS.length - 1) {
+      setTimeout(() => { if (autoPagina && !bloqueado) ir(1); }, 1200);
+    }
+  };
+  // Reanudar AudioContext si está suspended (autoplay policy)
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  // play() devuelve una promesa; si se rechaza, lo reintentamos en el siguiente gesto
+  const playPromise = audioNarr.play();
+  if (playPromise && typeof playPromise.catch === 'function') {
+    playPromise.catch(err => {
+      console.log('Narración autoplay bloqueado:', err.message);
+      // Mostrar banner "Tocar para activar audio"
+      mostrarAudioPrompt();
+    });
+  }
+}
+
+// Mostrar banner para activar audio manualmente
+function mostrarAudioPrompt() {
+  const prompt = document.getElementById('audio-prompt');
+  if (prompt) prompt.classList.add('visible');
+}
+
+// Activar audio tras gesto explícito del usuario (clic en el banner)
+function activarAudioManual() {
+  // Reanudar AudioContext
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  // Reintentar narración
+  if (audioNarr && audioNarr.paused) {
+    audioNarr.play().then(() => {
+      const prompt = document.getElementById('audio-prompt');
+      if (prompt) prompt.classList.remove('visible');
+    }).catch(() => {});
+  } else {
+    const prompt = document.getElementById('audio-prompt');
+    if (prompt) prompt.classList.remove('visible');
+  }
+}
+
+function setNarracionOn(on) {
+  narrActiva = on;
+  const btn = document.getElementById('btn-narr');
+  if (btn) { btn.classList.toggle('activo', on); btn.classList.toggle('inactivo', !on); }
+  if (on) {
+    cargarNarracion(actual);
+  } else {
+    if (audioNarr) { audioNarr.pause(); audioNarr = null; }
+    const indic = document.getElementById('narr-indic');
+    if (indic) indic.classList.remove('visible');
+  }
+}
+
+function toggleNarracion() { setNarracionOn(!narrActiva); }
+
+// ── AUDIO: crujido de papel al pasar página ──
+function tocarCrujidoPapel() {
+  if (!audioCtx) return;
+  try {
+    const dur = 0.25;
+    const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const env = Math.exp(-i / (bufferSize * 0.18));
+      data[i] = (Math.random() * 2 - 1) * env * 0.6;
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 2200;
+    filt.Q.value = 0.6;
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.5;
+    src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+    src.start(); src.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+
+// ── AUDIO: campanas de iglesia (capítulo V) ──
+function tocarCampanas() {
+  if (!audioCtx) return;
+  try {
+    const freqs = [220, 277, 330];
+    const inicio = audioCtx.currentTime + 0.1;
+    freqs.forEach((freq, i) => {
+      const parciales = [1, 2.4, 3.8, 5.2];
+      const amps = [1.0, 0.5, 0.25, 0.12];
+      parciales.forEach((p, j) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq * p;
+        const g = audioCtx.createGain();
+        const t0 = inicio + i * 0.9;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(0.18 * amps[j], t0 + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.8);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(t0); osc.stop(t0 + 3);
+      });
+    });
+  } catch (e) {}
+}
+
+// ── AUDIO: música medieval (laúd sintetizado) ──
+let musicaNodes = null;
+let musicaActiva = false;
+let musicaGain = null;
+let musicaScheduler = null;
+
+function iniciarMusica() {
+  if (musicaNodes || !audioCtx) return;
+  try {
+    musicaGain = audioCtx.createGain();
+    musicaGain.gain.value = 0.0;
+    musicaGain.connect(audioCtx.destination);
+    const bordonOsc = audioCtx.createOscillator();
+    bordonOsc.type = 'triangle';
+    bordonOsc.frequency.value = 146.83;
+    const bordonGain = audioCtx.createGain();
+    bordonGain.gain.value = 0.04;
+    bordonOsc.connect(bordonGain); bordonGain.connect(musicaGain);
+    const melodiaOsc = audioCtx.createOscillator();
+    melodiaOsc.type = 'triangle';
+    melodiaOsc.frequency.value = 440;
+    const melodiaGain = audioCtx.createGain();
+    melodiaGain.gain.value = 0;
+    melodiaOsc.connect(melodiaGain); melodiaGain.connect(musicaGain);
+    const notas = [587.33, 698.46, 880.00, 783.99, 698.46, 587.33, 659.25, 698.46];
+    const duracionNota = 0.7;
+    let idxNota = 0;
+    function scheduleNote() {
+      if (!musicaActiva) return;
+      const t = audioCtx.currentTime;
+      melodiaOsc.frequency.setValueAtTime(notas[idxNota], t);
+      melodiaGain.gain.cancelScheduledValues(t);
+      melodiaGain.gain.setValueAtTime(0, t);
+      melodiaGain.gain.linearRampToValueAtTime(0.07, t + 0.04);
+      melodiaGain.gain.exponentialRampToValueAtTime(0.0001, t + duracionNota);
+      idxNota = (idxNota + 1) % notas.length;
+      musicaScheduler = setTimeout(scheduleNote, duracionNota * 1000);
+    }
+    bordonOsc.start(); melodiaOsc.start();
+    musicaNodes = { bordonOsc, melodiaOsc };
+    musicaActiva = true;
+    musicaGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 1.5);
+    scheduleNote();
+  } catch (e) {}
+}
+
+function setMusica(on) {
+  document.getElementById('btn-musica-off').classList.toggle('activo', !on);
+  document.getElementById('btn-musica-on').classList.toggle('activo', on);
+  localStorage.setItem('toro-musica', on ? '1' : '0');
+  if (on) {
+    if (!audioCtx) iniciarAmbient();
+    if (!musicaNodes) iniciarMusica();
+    musicaActiva = true;
+    if (musicaGain) musicaGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 1.0);
+  } else {
+    musicaActiva = false;
+    if (musicaGain) musicaGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+  }
+}
+
+// ── AJUSTES ──
+function abrirAjustes() { document.getElementById('ajustes-overlay').classList.add('visible'); }
+function cerrarAjustes() { document.getElementById('ajustes-overlay').classList.remove('visible'); }
+function setTamanoTexto(tam) {
+  document.body.classList.remove('texto-grande', 'texto-pequeno');
+  if (tam === 'grande') document.body.classList.add('texto-grande');
+  if (tam === 'pequeno') document.body.classList.add('texto-pequeno');
+  ['s','m','l'].forEach(k => {
+    const btn = document.getElementById('btn-tam-' + k);
+    if (btn) btn.classList.remove('activo');
+  });
+  const mapa = { pequeno: 's', normal: 'm', grande: 'l' };
+  const btnAct = document.getElementById('btn-tam-' + mapa[tam]);
+  if (btnAct) btnAct.classList.add('activo');
+  localStorage.setItem('toro-tamano', tam);
+  setTimeout(ajustarTexto, 100);
+}
+function setModoLuz(modo) {
+  document.body.classList.toggle('modo-dia', modo === 'dia');
+  document.getElementById('btn-luz-noche').classList.toggle('activo', modo === 'noche');
+  document.getElementById('btn-luz-dia').classList.toggle('activo', modo === 'dia');
+  localStorage.setItem('toro-luz', modo);
+}
+function restaurarPreferencias() {
+  const tam = localStorage.getItem('toro-tamano') || 'normal';
+  setTamanoTexto(tam);
+  const luz = localStorage.getItem('toro-luz') || 'noche';
+  setModoLuz(luz);
+  const mus = localStorage.getItem('toro-musica') === '1';
+  if (mus) setMusica(true);
+}
+
+// ── AUTO-PÁGINA ──
+let autoPagina = false;
+function toggleAutoPagina() {
+  autoPagina = !autoPagina;
+  const btn = document.getElementById('btn-auto');
+  btn.classList.toggle('activo', autoPagina);
+  const indic = document.getElementById('auto-indic');
+  indic.classList.toggle('visible', autoPagina);
+  if (autoPagina && audioNarr && audioNarr.ended && actual < PAGINAS.length - 1) {
+    setTimeout(() => { if (autoPagina && !bloqueado) ir(1); }, 1200);
+  }
+}
+
+// ── INICIAR LIBRO ──
+function iniciarLibro() {
+  const narr = document.getElementById('chk-narr').checked;
+  const amb = document.getElementById('chk-amb').checked;
+  narrActiva = narr;
+  ambientActivo = amb;
+  narrEmpezada = true;
+  // Restaurar página guardada
+  const pagGuardada = parseInt(localStorage.getItem('toro-pagina'));
+  if (!isNaN(pagGuardada) && pagGuardada >= 0 && pagGuardada < PAGINAS.length) {
+    actual = pagGuardada;
+  }
+  restaurarPreferencias();
+  // Botones
+  const btnNarr = document.getElementById('btn-narr');
+  btnNarr.classList.toggle('activo', narr); btnNarr.classList.toggle('inactivo', !narr);
+  const btnAmb = document.getElementById('btn-amb');
+  btnAmb.classList.toggle('activo', amb); btnAmb.classList.toggle('inactivo', !amb);
+  // Inicializar AudioContext DENTRO del gesto del usuario (click)
+  // para que los navegadores no lo bloqueen
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) { console.warn('AudioContext no disponible:', e); }
+  }
+  // Reanudar si está suspended (Chrome lo crea suspended hasta gesture)
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+  // Iniciar ambiente (web audio)
+  iniciarAmbient();
+  if (!amb && ambientGain) {
+    ambientGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  }
+  // Renderizar la página
+  renderPagina();
+  // Iniciar narración DENTRO del gesto (sin setTimeout)
+  if (narr) {
+    cargarNarracion(actual);
+  }
+  document.getElementById('overlay-bienvenida').classList.add('oculto');
+}
+
+// ── AUTO-AJUSTE DE TEXTO ──
+function ajustarTexto() {
+  const cuerpo = document.getElementById('cuerpo');
+  if (!cuerpo) return;
+  const contenido = cuerpo.querySelector('.contenido');
+  if (!contenido) return;
+  contenido.style.zoom = '1';
+  void cuerpo.offsetHeight;
+  const naturalH = contenido.scrollHeight;
+  const visibleH = contenido.clientHeight;
+  if (naturalH <= visibleH) return;
+  const zoomCalculado = (visibleH / naturalH) * 0.98;
+  const zoom = Math.max(0.5, zoomCalculado);
+  contenido.style.zoom = zoom.toString();
+}
+
+// ── BARRA DE PROGRESO ──
+function actualizarBarraProgreso() {
+  const barra = document.getElementById('barra-progreso');
+  if (!barra) return;
+  const pct = ((actual + 1) / PAGINAS.length) * 100;
+  barra.style.width = pct + '%';
+}
+
+// ── GLOSARIO ──
+const GLOSARIO = {
+  comunidad: { term: 'Comunidad de Albarracín', def: 'Conjunto de aldeas y villas bajo jurisdicción común, gobernadas por un concejo mayor con sede en la villa de Albarracín. Surgió en el siglo XIII tras la reconquista cristiana.' },
+  concejo: { term: 'Concejo', def: 'Asamblea de vecinos que gobernaba el pueblo. Lo formaban los jurados elegidos anualmente y el alcaide. Decidía sobre impuestos, hornos, dehesas y, en este caso, sobre el sorteo de la quinta.' },
+  quinta: { term: 'Quinta (sorteo)', def: 'Leva o reclutamiento. Aquí, sorteo anual mediante el cual se elegía al mozo que habría de "hacer de toro" en la fiesta.' },
+  alcaide: { term: 'Alcaide', def: 'Magistrado o funcionario de la Comunidad encargado de la justicia y del orden público. En la Sierra de Albarracín, su autoridad era delegada por el concejo mayor de Albarracín.' },
+  visitacion: { term: 'Visitación de la Virgen', def: 'Festividad litúrgica (2 de julio) que celebra la visita de María a su prima Isabel. Era la fiesta mayor de muchas aldeas de la sierra, ocasión de feria, bailes y, en Terriente, de toros.' },
+  trashumancia: { term: 'Trashumancia', def: 'Migración estacional de los rebaños: en invierno bajaban a los llanos de Teruel o al reino de Valencia, en verano subían a los puertos de altura de la sierra.' },
+  jurados: { term: 'Jurados', def: 'Representantes del concejo, elegidos anualmente entre los cabezas de familia. Velaban por el cumplimiento de las ordenanzas y administraban los bienes comunales.' }
+};
+
+function vincularEventosContenido() {
+  document.querySelectorAll('.term-glos').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const term = el.dataset.term;
+      const entry = GLOSARIO[term];
+      if (!entry) return;
+      const pop = document.getElementById('glos-popover');
+      document.getElementById('glos-term').textContent = entry.term;
+      document.getElementById('glos-def').textContent = entry.def;
+      const rect = el.getBoundingClientRect();
+      const popW = 240;
+      let left = rect.left + rect.width / 2 - popW / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
+      let top = rect.bottom + 6;
+      if (top + 100 > window.innerHeight) top = rect.top - 100;
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+      pop.style.maxWidth = popW + 'px';
+      pop.classList.add('visible');
+      setTimeout(() => pop.classList.remove('visible'), 5000);
+    });
+  });
+  document.querySelectorAll('.nota-collapsible').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      el.classList.toggle('expandida');
+      setTimeout(ajustarTexto, 50);
+    });
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.classList.contains('term-glos')) {
+      const pop = document.getElementById('glos-popover');
+      if (pop) pop.classList.remove('visible');
+    }
+  });
+}
+
+// ── PROGRESO Y RENDER ──
+function renderProgreso() {
+  const el = document.getElementById('progreso');
+  el.innerHTML = PAGINAS.map((_, i) =>
+    `<div class="prog-dot${i === actual ? ' activo' : ''}"></div>`
+  ).join('');
+}
+
+function renderPagina() {
+  const p = PAGINAS[actual];
+  document.getElementById('cap-label').textContent = p.label;
+  document.getElementById('num-pagina').textContent = p.num;
+  document.getElementById('cuerpo').innerHTML = '<div class="contenido">' + p.html + '</div>';
+  document.getElementById('btn-prev').disabled = actual === 0;
+  document.getElementById('btn-next').disabled = actual === PAGINAS.length - 1;
+  renderProgreso();
+  actualizarBarraProgreso();
+  localStorage.setItem('toro-pagina', actual.toString());
+  setTimeout(() => { ajustarTexto(); vincularEventosContenido(); }, 10);
+  cargarNarracion(actual);
+  if (actual === 5 && audioCtx) {
+    setTimeout(() => tocarCampanas(), 800);
+  }
+}
+
+function ir(dir) {
+  if (bloqueado) return;
+  const nuevo = actual + dir;
+  if (nuevo < 0 || nuevo >= PAGINAS.length) return;
+  bloqueado = true;
+  const el = document.getElementById('pagina');
+  const clsSalir = dir > 0 ? 'salir-izq' : 'salir-der';
+  const clsEntrar = dir > 0 ? 'entrar-izq' : 'entrar-der';
+  if (audioNarr) audioNarr.pause();
+  const indic = document.getElementById('narr-indic');
+  if (indic) indic.classList.remove('visible');
+  tocarCrujidoPapel();
+  el.classList.add(clsSalir);
+  setTimeout(() => {
+    el.classList.remove(clsSalir);
+    actual = nuevo;
+    renderPagina();
+    if (actual > 0) document.getElementById('hint').classList.add('oculto');
+    el.classList.add(clsEntrar);
+    setTimeout(() => {
+      el.classList.remove(clsEntrar);
+      bloqueado = false;
+      ajustarTexto();
+    }, 290);
+  }, 250);
+}
+
+// ── SWIPE ──
+let tx = 0, ty = 0;
+const pag = document.getElementById('pagina');
+pag.addEventListener('touchstart', e => {
+  tx = e.changedTouches[0].clientX;
+  ty = e.changedTouches[0].clientY;
+}, { passive: true });
+pag.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  const dy = e.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    ir(dx < 0 ? 1 : -1);
+  }
+}, { passive: true });
+
+// ── TECLADO ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') ir(1);
+  if (e.key === 'ArrowLeft') ir(-1);
+  if (e.key === 'Escape') { cerrarMapa(); cerrarAjustes(); }
+});
+
+// ── RESIZE ──
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(ajustarTexto, 150);
+});
+window.addEventListener('orientationchange', () => setTimeout(ajustarTexto, 300));
+
+// ────────────────────────────────────────────────────────────
+// MAPA INTERACTIVO con OpenStreetMap + Leaflet
+// ────────────────────────────────────────────────────────────
+
+// Coordenadas reales de los pueblos de la Sierra de Albarracín
+const PUEBLOS = [
+  { id: 'terriente', nombre: 'Terriente', lat: 40.3583, lng: -1.5500, principal: true,
+    descripcion: 'Aquí nace la leyenda. En el siglo XVI era la segunda aldea más poblada de la Comunidad de Albarracín, con más de doscientas cuarenta familias apretadas contra el barranco a mil cuatrocientos metros de altura. Sus jurados gobernaban el sorteo de la quinta y, con él, el destino de los mozos que habían de hacer de toro en la fiesta de la Visitación.' },
+  { id: 'albarracin', nombre: 'Albarracín', lat: 40.4083, lng: -1.4408,
+    descripcion: 'Capital de la Comunidad y sede del concejo mayor. Villa amurallada sobre el meandro del río Guadalaviar, fue el centro político y administrativo al que pertenecían todas las aldeas de la sierra, incluida Terriente. Sus casas colgantes y su muralla musulmana siguen dominando el cañón. Patrimonio Nacional desde 1961.' },
+  { id: 'royuela', nombre: 'Royuela', lat: 40.4189, lng: -1.5108,
+    descripcion: 'Aldea norteña de la Comunidad, en el valle del Guadalaviar. Sus pastos de invierno y dehesas eran disputados por los ganaderos de toda la sierra, incluidos los de Terriente. La trashumancia hacia tierras valencianas pasaba por sus cañadas.' },
+  { id: 'frias', nombre: 'Frías de Albarracín', lat: 40.3447, lng: -1.6336,
+    descripcion: 'Aldea occidental, en los confines de la sierra. Sus pinares de sabina albar proporcionaban la madera con la que se construían las casas, las vigas y los carros de toda la Comunidad. El bosque de Frías es aún hoy uno de los sabinares más extensos de Europa.' },
+  { id: 'moscardon', nombre: 'Moscardón', lat: 40.2917, lng: -1.5756,
+    descripcion: 'Aldea del sur, en la falda de la sierra. Tierra de pastores y de rebaños trashumantes. Sus cañadas reales conectaban la sierra con los llanos de Teruel al sur y con el reino de Valencia al este, por donde bajaban los ganados a invernar.' },
+  { id: 'guadalaviar', nombre: 'Guadalaviar', lat: 40.4489, lng: -1.3956,
+    descripcion: 'Aldea más alta de la Comunidad, junto al nacimiento del río Guadalaviar. Sus puertos de pasto se alquilaban cada año a los rebaños que subían en verano. El río que nace aquí atraviesa toda la sierra y riega los huertos de las aldeas inferiores, incluida Terriente.' },
+  { id: 'gea', nombre: 'Gea de Albarracín', lat: 40.3817, lng: -1.3506,
+    descripcion: 'Aldea oriental, en la entrada del valle del Guadalaviar. Su puente medieval era paso obligado para los arrieros que subían desde la depresión del Turia hacia la sierra. Tenía molinos harineros que abastecían de pan a las aldeas cercanas.' },
+  { id: 'tramacastilla', nombre: 'Tramacastilla', lat: 40.4333, lng: -1.4639,
+    descripcion: 'Aldea del norte de la Comunidad, en la cabecera del río Guadalaviar. Sus pastizales de altura alimentaban los rebaños trashumantes que cada otoño bajaban al reino de Valencia por la cañada real conquense.' },
+  { id: 'bezas', nombre: 'Bezas', lat: 40.3133, lng: -1.6169,
+    descripcion: 'Aldea suroccidental de la Comunidad. Sus pinares y sabinares proporcionaban leña y carbón vegetal a toda la sierra. La carbonera de Bezas era uno de los oficios más duros: semanas enteras en el bosque calentando la madera bajo tierra.' },
+  { id: 'valdecuenca', nombre: 'Valdecuenca', lat: 40.2583, lng: -1.6169,
+    descripcion: 'Aldea del extremo sur, en el límite con la sierra de Javalambre. Su nombre evoca el barranco profundo que la protege. Pequeña y aislada, sus habitantes vivían del ganado cabrío y de la miel de los colmenares dispersos por el monte.' }
+];
+
+// Conexiones históricas entre pueblos (caminos reales aproximados)
+const CAMINOS = [
+  { desde: 'terriente', hasta: 'albarracin' },
+  { desde: 'terriente', hasta: 'royuela' },
+  { desde: 'terriente', hasta: 'frias' },
+  { desde: 'terriente', hasta: 'moscardon' },
+  { desde: 'terriente', hasta: 'gea' },
+  { desde: 'terriente', hasta: 'bezas' },
+  { desde: 'terriente', hasta: 'valdecuenca' },
+  { desde: 'albarracin', hasta: 'guadalaviar' },
+  { desde: 'albarracin', hasta: 'royuela' },
+  { desde: 'albarracin', hasta: 'tramacastilla' },
+  { desde: 'albarracin', hasta: 'gea' }
+];
+
+// Capas de mapa disponibles (todas gratuitas)
+const CAPAS = {
+  vintage: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 18
+  }),
+  relieve: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenTopoMap (CC-BY-SA)',
+    maxZoom: 17
+  }),
+  acuator: L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg', {
+    attribution: '© Stamen Design, © OpenStreetMap',
+    maxZoom: 16,
+    subdomains: 'abcd'
+  }),
+  satelite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri, Maxar, Earthstar Geographics',
+    maxZoom: 18
+  })
+};
+
+let mapaLeaflet = null;
+let capaActual = 'vintage';
+let marcadores = {};
+let lineaViaje = null;
+let marcadorViaje = null;
+
+function inicializarMapa() {
+  if (mapaLeaflet) return;
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet no cargado');
+    return;
+  }
+  mapaLeaflet = L.map('mapa-leaflet', {
+    center: [40.36, -1.50],
+    zoom: 11,
+    zoomControl: true,
+    attributionControl: true
+  });
+  CAPAS.vintage.addTo(mapaLeaflet);
+
+  // Añadir marcadores de los pueblos
+  PUEBLOS.forEach(p => {
+    const icono = L.divIcon({
+      className: 'marcador-icon',
+      html: `<div class="marcador-pueblo ${p.principal ? 'marcador-principal' : ''}"></div>`,
+      iconSize: [p.principal ? 18 : 14, p.principal ? 18 : 14],
+      iconAnchor: [p.principal ? 9 : 7, p.principal ? 9 : 7]
+    });
+    const marker = L.marker([p.lat, p.lng], { icon: icono }).addTo(mapaLeaflet);
+    marker.bindPopup(`
+      <span class="popup-titulo">${p.nombre}</span>
+      ${p.descripcion}
+      ${p.id !== 'terriente' ? '<br><br><em style="color:#8b3a1f">Toca "Viajar" en el panel inferior para ver el camino desde Terriente.</em>' : ''}
+    `);
+    marker.on('click', () => seleccionarPueblo(p.id));
+    marcadores[p.id] = marker;
+  });
+
+  // Dibujar caminos históricos (líneas punteadas)
+  CAMINOS.forEach(c => {
+    const o = PUEBLOS.find(p => p.id === c.desde);
+    const d = PUEBLOS.find(p => p.id === c.hasta);
+    if (!o || !d) return;
+    L.polyline([[o.lat, o.lng], [d.lat, d.lng]], {
+      color: '#7a5228',
+      weight: 1.5,
+      opacity: 0.6,
+      dashArray: '4 3'
+    }).addTo(mapaLeaflet);
+  });
+
+  // Forzar recálculo de tamaño tras apertura del modal
+  setTimeout(() => mapaLeaflet.invalidateSize(), 200);
+}
+
+function cambiarCapa(nombre) {
+  if (!mapaLeaflet || !CAPAS[nombre]) return;
+  Object.values(CAPAS).forEach(capa => {
+    if (mapaLeaflet.hasLayer(capa)) mapaLeaflet.removeLayer(capa);
+  });
+  CAPAS[nombre].addTo(mapaLeaflet);
+  capaActual = nombre;
+  // Actualizar botones
+  document.querySelectorAll('.capa-btn').forEach(b => {
+    b.classList.toggle('activo', b.dataset.capa === nombre);
+  });
+  // Ajustar filtro vintage según la capa
+  const wrap = document.querySelector('.mapa-leaflet-wrap');
+  if (wrap) {
+    wrap.classList.toggle('capa-satelite', nombre === 'satelite');
+  }
+}
+
+function seleccionarPueblo(id) {
+  const p = PUEBLOS.find(x => x.id === id);
+  if (!p) return;
+  // Resaltar marcador
+  Object.values(marcadores).forEach(m => {
+    const el = m.getElement();
+    if (el) el.querySelector('.marcador-pueblo')?.classList.remove('activo');
+  });
+  const marker = marcadores[id];
+  if (marker) {
+    const el = marker.getElement();
+    el?.querySelector('.marcador-pueblo')?.classList.add('activo');
+    marker.openPopup();
+    // Centrar el mapa suavemente
+    mapaLeaflet.panTo([p.lat, p.lng], { animate: true });
+  }
+  // Actualizar panel info
+  const info = document.getElementById('mapa-info');
+  const botonViaje = id !== 'terriente' ? '<button class="ajustes-btn" style="margin-top:6px" onclick="animarViaje(\''+id+'\')">Viajar desde Terriente</button>' : '';
+  info.innerHTML = `<span class="nombre-pueblo">${p.nombre}</span>${p.descripcion}${botonViaje}`;
+}
+
+function animarViaje(idDestino) {
+  const origen = PUEBLOS.find(p => p.id === 'terriente');
+  const destino = PUEBLOS.find(p => p.id === idDestino);
+  if (!origen || !destino || !mapaLeaflet) return;
+
+  // Limpiar viaje previo
+  if (lineaViaje) { mapaLeaflet.removeLayer(lineaViaje); lineaViaje = null; }
+  if (marcadorViaje) { mapaLeaflet.removeLayer(marcadorViaje); marcadorViaje = null; }
+
+  // Dibujar línea Terriente → destino
+  lineaViaje = L.polyline([[origen.lat, origen.lng], [destino.lat, destino.lng]], {
+    color: '#d4a72c',
+    weight: 3,
+    opacity: 0.85,
+    dashArray: '6 4'
+  }).addTo(mapaLeaflet);
+
+  // Marcador viajero (punto dorado)
+  const iconoViaje = L.divIcon({
+    className: 'viaje-icon',
+    html: '<div class="marcador-pueblo" style="background:#d4a72c;border-color:#1e0f04;box-shadow:0 0 8px rgba(212,167,44,0.9);"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  marcadorViaje = L.marker([origen.lat, origen.lng], { icon: iconoViaje }).addTo(mapaLeaflet);
+
+  // Animar a lo largo de la línea con curva ease-in-out
+  const start = performance.now();
+  const duracion = 2200;
+  function step(t) {
+    const progreso = Math.min(1, (t - start) / duracion);
+    const curva = progreso * progreso * (3 - 2 * progreso);
+    const lat = origen.lat + (destino.lat - origen.lat) * curva;
+    const lng = origen.lng + (destino.lng - origen.lng) * curva;
+    marcadorViaje.setLatLng([lat, lng]);
+    if (progreso < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+
+  // Hacer zoom para ver todo el trayecto
+  mapaLeaflet.fitBounds([[origen.lat, origen.lng], [destino.lat, destino.lng]], {
+    padding: [40, 40],
+    animate: true
+  });
+}
+
+function abrirMapa() {
+  document.getElementById('mapa-overlay').classList.add('visible');
+  // Inicializar mapa la primera vez
+  setTimeout(() => {
+    if (!mapaLeaflet) {
+      inicializarMapa();
+    } else {
+      mapaLeaflet.invalidateSize();
+    }
+    // Pre-seleccionar Terriente
+    setTimeout(() => seleccionarPueblo('terriente'), 300);
+  }, 200);
+  if (audioNarr) audioNarr.pause();
+  const indic = document.getElementById('narr-indic');
+  if (indic) indic.classList.remove('visible');
+}
+
+function cerrarMapa() {
+  document.getElementById('mapa-overlay').classList.remove('visible');
+  if (narrActiva && narrEmpezada) cargarNarracion(actual);
+}
+
+document.getElementById('mapa-overlay').addEventListener('click', e => {
+  if (e.target.id === 'mapa-overlay') cerrarMapa();
+});
+document.getElementById('ajustes-overlay').addEventListener('click', e => {
+  if (e.target.id === 'ajustes-overlay') cerrarAjustes();
+});
+
+// ── RENDER INICIAL ──
+renderPagina();
+
+// ── PWA: service worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('[SW] registrado:', reg.scope);
+    }).catch(err => console.warn('[SW] error:', err));
+  });
+}
+
+// ── PWA: install prompt (botón "Instalar app") ──
+let deferredPrompt = null;
+let btnInstall = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  // Prevenir el prompt automático de Chrome
+  e.preventDefault();
+  deferredPrompt = e;
+  // Crear botón de instalar si no existe
+  if (!btnInstall) {
+    btnInstall = document.createElement('button');
+    btnInstall.className = 'btn-empezar';
+    btnInstall.style.cssText = 'margin-top:8px;background:var(--oro);color:var(--perg);';
+    btnInstall.textContent = '⬇ Instalar app';
+    btnInstall.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('Install outcome:', outcome);
+      deferredPrompt = null;
+      btnInstall.style.display = 'none';
+    };
+    const card = document.querySelector('.bienvenida-card');
+    if (card) card.appendChild(btnInstall);
+  }
+  btnInstall.style.display = 'block';
+});
+
+window.addEventListener('appinstalled', () => {
+  if (btnInstall) btnInstall.style.display = 'none';
+  console.log('[PWA] App instalada');
+});
+
+// ── PWA: shortcuts del manifest (?accion=mapa o ?accion=reiniciar) ──
+(function manejarShortcut() {
+  const params = new URLSearchParams(window.location.search);
+  const accion = params.get('accion');
+  if (accion === 'mapa') {
+    // Esperar a que el usuario pulse "Comenzar" y abrir mapa
+    const esperar = setInterval(() => {
+      if (narrEmpezada) {
+        clearInterval(esperar);
+        setTimeout(abrirMapa, 300);
+      }
+    }, 200);
+  } else if (accion === 'reiniciar') {
+    localStorage.removeItem('toro-pagina');
+    actual = 0;
+  }
+})();
+
+// ── PWA: detectar si está instalada (modo standalone) ──
+if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+  console.log('[PWA] Ejecutándose como app instalada');
+  document.body.classList.add('pwa-standalone');
+}
+</script>
+</body>
+</html>
