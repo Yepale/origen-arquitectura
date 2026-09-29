@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/toggle-group';
 import { useMaterialStore } from '@/3d/materialViewer';
 import type { LOD } from '@/3d/masterSymbol';
+import { MODEL_LIBRARY, MODEL_IDS, type ModelId } from '@/3d/models';
+import { MATERIAL_PRESETS, type MaterialPreset } from '@/3d/materialViewer';
 import {
   RotateCw,
   Eye,
@@ -52,6 +54,9 @@ import {
   Spline,
   Play,
   Volume2,
+  Layers,
+  Gem,
+  Wand2,
 } from 'lucide-react';
 
 export function ControlPanel() {
@@ -88,6 +93,38 @@ export function ControlPanel() {
           <ActionButton icon={<RotateCcw className="h-4 w-4" />} label="Vista" onClick={s.resetView} kbd="R" />
           <ActionButton icon={<Camera className="h-4 w-4" />} label="Captura" onClick={s.capture} kbd="C" />
           <ActionButton icon={<Keyboard className="h-4 w-4" />} label="Atajos" onClick={s.toggleShortcuts} kbd="H" />
+        </div>
+
+        <Separator className="bg-stone-700/50" />
+
+        {/* Model library */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-stone-400">
+            <Layers className="h-3 w-3" /> Modelo
+          </Label>
+          <ToggleGroup
+            type="single"
+            value={s.modelId}
+            onValueChange={(v) => v && s.setModelId(v as ModelId)}
+            className="grid gap-2"
+          >
+            {MODEL_IDS.map((id) => {
+              const entry = MODEL_LIBRARY[id];
+              return (
+                <ToggleGroupItem
+                  key={id}
+                  value={id}
+                  className="flex items-center justify-start gap-2 border border-stone-700/50 px-3 py-2 text-xs data-[state=on]:bg-amber-500/20 data-[state=on]:text-amber-200 hover:bg-stone-800"
+                >
+                  <Boxes className="h-3.5 w-3.5 shrink-0" />
+                  <span className="text-left">{entry.name}</span>
+                </ToggleGroupItem>
+              );
+            })}
+          </ToggleGroup>
+          <p className="font-mono text-[10px] text-stone-500">
+            {MODEL_LIBRARY[s.modelId].description}
+          </p>
         </div>
 
         <Separator className="bg-stone-700/50" />
@@ -154,6 +191,40 @@ export function ControlPanel() {
           <ToggleRow icon={<RotateCw className="h-3.5 w-3.5" />} label="Auto-orbita" kbd="A" checked={s.autoRotate} onCheckedChange={s.setAutoRotate} />
           <ToggleRow icon={<Play className="h-3.5 w-3.5" />} label="Recorrido cinematográfico" kbd="T" checked={s.autoTour} onCheckedChange={s.setAutoTour} />
           <ToggleRow icon={<Volume2 className="h-3.5 w-3.5" />} label="Audio ambiental" kbd="M" checked={s.audioEnabled} onCheckedChange={s.setAudioEnabled} />
+          <ToggleRow icon={<Wand2 className="h-3.5 w-3.5" />} label="Postproceso (bloom)" kbd="O" checked={s.postprocessing} onCheckedChange={s.setPostprocessing} />
+        </div>
+
+        <Separator className="bg-stone-700/50" />
+
+        {/* Material preset library */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-stone-400">
+            <Gem className="h-3 w-3" /> Material
+          </Label>
+          <ToggleGroup
+            type="single"
+            value={s.materialPreset}
+            onValueChange={(v) => v && s.setMaterialPreset(v as MaterialPreset)}
+            className="grid grid-cols-4 gap-1.5"
+          >
+            {(Object.keys(MATERIAL_PRESETS) as MaterialPreset[]).map((p) => {
+              const preset = MATERIAL_PRESETS[p];
+              return (
+                <ToggleGroupItem
+                  key={p}
+                  value={p}
+                  className="flex flex-col items-center gap-1 border border-stone-700/50 px-1 py-2 text-[10px] data-[state=on]:bg-amber-500/20 data-[state=on]:text-amber-200 hover:bg-stone-800"
+                  title={`${preset.label} · roughness ${preset.roughness}`}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-stone-600/40"
+                    style={{ backgroundColor: preset.color }}
+                  />
+                  {preset.label}
+                </ToggleGroupItem>
+              );
+            })}
+          </ToggleGroup>
         </div>
 
         <Separator className="bg-stone-700/50" />

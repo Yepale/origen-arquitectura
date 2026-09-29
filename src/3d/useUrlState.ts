@@ -19,7 +19,9 @@ import { toast } from 'sonner';
 import { useMaterialStore, SEASON_ENV_DEFAULTS } from '@/3d/materialViewer';
 import type { LOD } from '@/3d/masterSymbol';
 import type { Season } from '@/3d/sceneManager';
-import type { CameraPreset } from '@/3d/materialViewer';
+import type { CameraPreset, MaterialPreset } from '@/3d/materialViewer';
+import type { ModelId } from '@/3d/models';
+import { MODEL_IDS } from '@/3d/models';
 
 const SYNCED_KEYS = [
   'season',
@@ -34,6 +36,10 @@ const SYNCED_KEYS = [
   'guidedTour',
   'compareView',
   'galleryMode',
+  'postprocessing',
+  'materialPreset',
+  'kiosk',
+  'modelId',
   'showBackdrop',
   'audioEnabled',
   'cameraPreset',
@@ -95,6 +101,18 @@ function parseHash(): Partial<Record<(typeof SYNCED_KEYS)[number], unknown>> {
       case 'gallery':
         out.galleryMode = v === '1';
         break;
+      case 'bloom':
+        out.postprocessing = v === '1';
+        break;
+      case 'mat':
+        out.materialPreset = v as MaterialPreset;
+        break;
+      case 'kiosk':
+        out.kiosk = v === '1';
+        break;
+      case 'model':
+        if (MODEL_IDS.includes(v as ModelId)) out.modelId = v as ModelId;
+        break;
       case 'showBackdrop':
         out.showBackdrop = v === '1';
         break;
@@ -135,6 +153,10 @@ function buildHash(s: {
   guidedTour: boolean;
   compareView: boolean;
   galleryMode: boolean;
+  postprocessing: boolean;
+  materialPreset: MaterialPreset;
+  kiosk: boolean;
+  modelId: ModelId;
   showBackdrop: boolean;
   audioEnabled: boolean;
   cameraPreset: CameraPreset;
@@ -153,6 +175,10 @@ function buildHash(s: {
     `guided=${s.guidedTour ? '1' : '0'}`,
     `compare=${s.compareView ? '1' : '0'}`,
     `gallery=${s.galleryMode ? '1' : '0'}`,
+    `bloom=${s.postprocessing ? '1' : '0'}`,
+    `mat=${s.materialPreset}`,
+    `kiosk=${s.kiosk ? '1' : '0'}`,
+    `model=${s.modelId}`,
     `showBackdrop=${s.showBackdrop ? '1' : '0'}`,
     `audio=${s.audioEnabled ? '1' : '0'}`,
     `view=${s.cameraPreset}`,
@@ -188,10 +214,19 @@ export function useUrlState() {
     if (typeof parsed.guidedTour === 'boolean') store.setGuidedTour(parsed.guidedTour);
     if (typeof parsed.compareView === 'boolean') store.setCompareView(parsed.compareView);
     if (typeof parsed.galleryMode === 'boolean') store.setGalleryMode(parsed.galleryMode);
+    if (typeof parsed.postprocessing === 'boolean') store.setPostprocessing(parsed.postprocessing);
+    if (parsed.materialPreset) store.setMaterialPreset(parsed.materialPreset as MaterialPreset);
+    if (typeof parsed.kiosk === 'boolean') store.setKiosk(parsed.kiosk);
+    if (parsed.modelId) store.setModelId(parsed.modelId as ModelId);
     if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
     if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
     if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
     if (parsed.orbit) store.applyOrbit(parsed.orbit as { azimuth: number; elevation: number; distance: number });
+    // Kiosk mode auto-starts gallery + auto-tour on load.
+    if (parsed.kiosk) {
+      store.setGalleryMode(true);
+      store.setAutoTour(true);
+    }
   }, []);
 
   // Store → hash (debounced via rAF).
@@ -227,6 +262,10 @@ export function useUrlState() {
           guidedTour: s.guidedTour,
           compareView: s.compareView,
           galleryMode: s.galleryMode,
+          postprocessing: s.postprocessing,
+          materialPreset: s.materialPreset,
+          kiosk: s.kiosk,
+          modelId: s.modelId,
           showBackdrop: s.showBackdrop,
           audioEnabled: s.audioEnabled,
           cameraPreset: s.cameraPreset,
@@ -259,6 +298,10 @@ export function useUrlState() {
       if (typeof parsed.guidedTour === 'boolean') store.setGuidedTour(parsed.guidedTour);
       if (typeof parsed.compareView === 'boolean') store.setCompareView(parsed.compareView);
       if (typeof parsed.galleryMode === 'boolean') store.setGalleryMode(parsed.galleryMode);
+      if (typeof parsed.postprocessing === 'boolean') store.setPostprocessing(parsed.postprocessing);
+      if (parsed.materialPreset) store.setMaterialPreset(parsed.materialPreset as MaterialPreset);
+      if (typeof parsed.kiosk === 'boolean') store.setKiosk(parsed.kiosk);
+      if (parsed.modelId) store.setModelId(parsed.modelId as ModelId);
       if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
       if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
       if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
@@ -287,6 +330,10 @@ export function buildShareUrl(): string {
     guidedTour: s.guidedTour,
     compareView: s.compareView,
     galleryMode: s.galleryMode,
+    postprocessing: s.postprocessing,
+    materialPreset: s.materialPreset,
+    kiosk: s.kiosk,
+    modelId: s.modelId,
     showBackdrop: s.showBackdrop,
     audioEnabled: s.audioEnabled,
     cameraPreset: s.cameraPreset,

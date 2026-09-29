@@ -23,6 +23,7 @@ import { Atmosphere } from './Atmosphere';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { OrigenLoader } from './OrigenLoader';
 import { AmbientAudio } from './AmbientAudio';
+import { PostProcessing } from './PostProcessing';
 
 export function OrigenViewer() {
   const season = useMaterialStore((s) => s.season);
@@ -67,6 +68,7 @@ export function OrigenViewer() {
           />
         )}
         <OrigenComposition onLoaded={onLoaded} />
+        <PostProcessing />
       </Suspense>
       {/* Ambient wind audio (DOM-side, not in the 3D graph). */}
       <AmbientAudio season={season as Season} />

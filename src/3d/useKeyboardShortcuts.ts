@@ -15,6 +15,7 @@
  *   B           → toggle backdrop
  *   K           → toggle bookmarks panel (saved views)
  *   M           → toggle ambient audio
+ *   O           → toggle postprocessing (bloom + vignette)
  *   R           → reset view
  *   C           → capture PNG
  *   V           → toggle vertex colors
@@ -94,6 +95,9 @@ export function useKeyboardShortcuts() {
           break;
         case 'm':
           s.setAudioEnabled(!s.audioEnabled);
+          break;
+        case 'o':
+          s.setPostprocessing(!s.postprocessing);
           break;
         case 'v':
           s.setVertexColors(!s.vertexColors);

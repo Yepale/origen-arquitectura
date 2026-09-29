@@ -75,8 +75,9 @@ export function OrigenComposition({
   const setLoaded = useMaterialStore((s) => s.setLoaded);
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
   const season = useMaterialStore((s) => s.season);
+  const modelId = useMaterialStore((s) => s.modelId);
 
-  const { symbol, size, meshes } = useOrigenSymbol(lod);
+  const { root: symbol, size, meshes } = useOrigenSymbol(modelId, lod);
   const { pedestal, topY, pedestalMeshes } = usePedestal();
   const inter = useInteraction();
   const { gl } = useThree();

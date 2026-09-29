@@ -430,3 +430,66 @@ Project entered this round in a stable, verified state (Rounds 1–4 complete: e
    - Add a **material preset library** (stone / marble / basalt / weathered) — swap the ORIGEN material look without touching geometry.
    - Add **postprocessing** (bloom + vignette + subtle chromatic aberration) via @react-three/postprocessing for a cinematic hero shot.
    - Add a **mini-map / orientation indicator** showing the current camera azimuth relative to the monolith.
+
+---
+
+## Round 6 — webDevReview (cron #6) · model library, material presets, postprocessing & kiosk mode
+
+### Trigger
+The user uploaded a custom 3D model (`rocky letter y 3d model (1).glb`, 11.6 MB, ~481k triangles, 5 meshes, bbox 1.0×0.96×0.21, base at Y=0) and asked to view it. This round extended the viewer into a **model library** so any uploaded GLB can be loaded with the full existing infrastructure (controls, material inspector, seasons, capture, bookmarks, etc.).
+
+### Completed modifications
+**1. Model library (`src/3d/models.ts`)**
+- New `ModelEntry` registry + `MODEL_LIBRARY` with the ORIGEN master symbol and the uploaded rocky-Y (`/assets/models/rocky-Y.glb`).
+- `modelUrl(id, lod)` resolves the GLB URL (non-ORIGEN models always use their single LOD).
+- Preloaded the rocky-Y alongside the ORIGEN LODs.
+
+**2. Generic model loader (`masterSymbol.ts`)**
+- Refactored `useOrigenSymbol` → generic `useModel(id, lod)` that resolves the root (named group for ORIGEN, whole scene for others), measures the bbox, and collects meshes. The runtime contract (load → resolve root → measure → never split/rebuild) applies to every model.
+
+**3. Store extensions (`materialViewer.ts`)**
+- New state: `modelId`, `materialPreset` (limestone/marble/basalt/weathered), `postprocessing`, `kiosk`.
+- New `MATERIAL_PRESETS` table (color, roughness, metalness, envIntensity, vertexColorBlend) for each material look.
+- `setMaterialPreset(p)` applies the preset's roughness + envIntensity; `syncMaterialState` now also blends the preset color/metalness with the vertex colors using `vertexColorBlend` (1.0 = pure vertex colors for limestone, <1 = tint toward the preset color for marble/basalt/weathered).
+- New actions: `setPostprocessing`, `setMaterialPreset`, `setKiosk`, `setModelId`.
+- Bookmarks now snapshot/restore `modelId` too.
+
+**4. Postprocessing (`PostProcessing.tsx`)**
+- Installed `@react-three/postprocessing`. New `<PostProcessing>` component mounts an `EffectComposer` with Bloom (subtle, luminanceThreshold 0.62, mipmapBlur), ChromaticAberration (barely-there 0.0006 offset), and Vignette (0.28 offset, 0.62 darkness). Toggled by the `postprocessing` store flag (`O` key).
+- Verified: VLM-confirmed cinematic bloom on highlights + subtle vignette.
+
+**5. Material preset library (ControlPanel)**
+- New 4-up toggle selector (Caliza/Mármol/Basalto/Patinada) with color swatches + tooltips. Verified: marble makes the rocky-Y whiter/glossier; limestone restores the default.
+
+**6. Model selector (ControlPanel)**
+- New model-library section at the top of the panel with full-width buttons for each model + a description line. Verified: switching to "Letra Y rocosa" loads the rocky-Y on the pedestal against the panorama (VLM-confirmed).
+
+**7. Kiosk mode (URL flag)**
+- `kiosk=1` in the URL hash auto-starts gallery mode + auto-tour on load (lobby/kiosk display). Wired in `useUrlState` mount effect.
+
+**8. URL state extended (`useUrlState.ts`)**
+- Added `bloom` (`postprocessing`), `mat` (`materialPreset`), `kiosk`, `model` (`modelId`) to the synced keys (19 total). Verified: `#bloom=1&mat=marble&model=rockyY` restored across reload (rocky-Y + marble + bloom).
+
+**9. Keyboard shortcuts extended**
+- New `O` toggle postprocessing. 21 total shortcuts.
+
+### Verification results (agent-browser, desktop 1440×900)
+- ✅ No runtime errors; only the harmless `THREE.Clock` deprecation warning.
+- ✅ **Model switcher**: rocky-Y loads on the pedestal against the panorama (VLM-confirmed). ORIGEN restores correctly.
+- ✅ **Material presets**: marble = whiter/glossier (VLM-confirmed); limestone restores default.
+- ✅ **Postprocessing**: bloom + vignette (VLM-confirmed cinematic glow + darker edges).
+- ✅ **URL state**: all 19 fields sync; `#bloom=1&mat=marble&model=rockyY` restored across reload.
+- ✅ All Rounds 1–5 features still working.
+- ✅ Lint clean (`bun run lint` → 0 errors, 0 warnings); dev server all 200s.
+- ✅ Preview PNG re-captured & sharp-optimized (1.5 MB → 416 KB).
+
+### Unresolved issues / risks & next-phase recommendations
+1. **`THREE.Clock` deprecation** — drei internal; resolves when drei updates. No action.
+2. **Rocky-Y size** — 11.6 MB / 481k tris is heavy; first load takes a moment (Suspense handles it). Could generate LODs for uploaded models via a future mesh-decimation pipeline.
+3. **Material-preset color blend** — the `vertexColorBlend` tint multiplies the existing vertex colors; for models without vertex colors (like the rocky-Y if it has none), the preset color applies directly. Works for both.
+4. **Next-round candidate features**:
+   - Add a **drag-and-drop model uploader** so users can load their own GLB without copying files.
+   - Generate **LODs for uploaded models** (meshopt_simplify or a SimplifyModifier) so the LOD selector works for all models.
+   - Add the **mini-map / orientation indicator** (deferred from the Round 5 backlog).
+   - Add **TTS voice-over** for the guided tour (deferred).
+   - Add a **model inspector panel** showing mesh count, triangle count, material list per model.

@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { create } from 'zustand';
 import type { LOD } from './masterSymbol';
 import type { Season } from './sceneManager';
+import type { ModelId } from './models';
 
 export type ConceptTag = 'tierra' | 'tiempo' | 'mano';
 export type CameraPreset = 'front' | 'hero' | 'side' | 'top';
@@ -60,6 +61,7 @@ export interface OrigenBookmark {
   autoRotate: boolean;
   showBackdrop: boolean;
   audioEnabled: boolean;
+  modelId: ModelId;
 }
 
 /** Compact orbit (spherical) coords for URL hash serialization. */
@@ -125,6 +127,8 @@ export interface MaterialState {
   materialPreset: MaterialPreset;
   // ── kiosk mode (auto-start gallery + auto-tour on load) ──
   kiosk: boolean;
+  // ── model library selector (ORIGEN symbol / rocky-Y / …) ──
+  modelId: ModelId;
   // ── bookmarks (saved view + material snapshots, persisted to localStorage) ──
   bookmarks: OrigenBookmark[];
   showBookmarks: boolean;
@@ -167,6 +171,7 @@ export interface MaterialState {
   setPostprocessing: (v: boolean) => void;
   setMaterialPreset: (p: MaterialPreset) => void;
   setKiosk: (v: boolean) => void;
+  setModelId: (id: ModelId) => void;
   saveBookmark: (name: string) => void;
   deleteBookmark: (id: string) => void;
   applyBookmark: (id: string) => void;
@@ -204,6 +209,7 @@ const DEFAULTS = {
   postprocessing: false,
   materialPreset: 'limestone' as MaterialPreset,
   kiosk: false,
+  modelId: 'origen' as ModelId,
 };
 
 const BOOKMARKS_KEY = 'origen-bookmarks';
@@ -289,6 +295,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     });
   },
   setKiosk: (v) => set({ kiosk: v }),
+  setModelId: (id) => set({ modelId: id }),
   // Bookmarks: snapshot the current view + material state into a named entry
   // persisted to localStorage. The orbit coords are read from the global
   // (set by the CameraRig each frame) so the bookmark captures the exact
@@ -313,6 +320,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
         autoRotate: s.autoRotate,
         showBackdrop: s.showBackdrop,
         audioEnabled: s.audioEnabled,
+        modelId: s.modelId,
       };
       const next = [bm, ...s.bookmarks].slice(0, 24);
       persistBookmarks(next);
@@ -344,6 +352,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
         autoRotate: bm.autoRotate,
         showBackdrop: bm.showBackdrop,
         audioEnabled: bm.audioEnabled,
+        modelId: bm.modelId,
         autoTour: false,
         guidedTour: false,
       };
@@ -379,16 +388,35 @@ export const useMaterialStore = create<MaterialState>((set) => ({
 /**
  * Apply the material-store state to the loaded ORIGEN meshes.
  * Only touches material parameters — geometry & transforms are untouched.
+ *
+ * The material-preset color/metalness are blended with the existing vertex
+ * colors using the preset's `vertexColorBlend` factor (0 = pure preset color,
+ * 1 = pure vertex colors). This lets the marble/basalt/weathered presets
+ * override the default limestone look without rebuilding geometry.
  */
 export function syncMaterialState(meshes: THREE.Mesh[], s: MaterialState) {
+  const preset = MATERIAL_PRESETS[s.materialPreset];
   for (const m of meshes) {
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     for (const mat of mats) {
       const sm = mat as THREE.MeshStandardMaterial;
       sm.wireframe = s.wireframe;
-      sm.roughness = s.roughnessOverride ?? 0.86;
-      sm.vertexColors = s.vertexColors;
+      sm.roughness = s.roughnessOverride ?? preset.roughness;
+      sm.metalness = preset.metalness;
       sm.envMapIntensity = s.envIntensity;
+      // Blend the preset color with the vertex colors. When vertexColorBlend=1
+      // (limestone), keep the original vertex colors by setting color=white
+      // (acts as a multiplier). When <1, tint toward the preset color.
+      sm.vertexColors = s.vertexColors;
+      if (s.vertexColors) {
+        // Multiply vertex colors by the preset color (white = no tint for limestone).
+        const tint = new THREE.Color(preset.color);
+        const blend = preset.vertexColorBlend;
+        // Lerp from white (no tint) to preset color by (1 - blend).
+        sm.color.copy(new THREE.Color('#ffffff').lerp(tint, 1 - blend));
+      } else {
+        sm.color.copy(new THREE.Color(preset.color));
+      }
       sm.needsUpdate = true;
     }
   }
