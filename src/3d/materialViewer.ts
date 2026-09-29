@@ -24,6 +24,23 @@ import type { Season } from './sceneManager';
 
 export type ConceptTag = 'tierra' | 'tiempo' | 'mano';
 export type CameraPreset = 'front' | 'hero' | 'side' | 'top';
+export type MaterialPreset = 'limestone' | 'marble' | 'basalt' | 'weathered';
+
+/** Per-material-preset PBR parameters (applied to the ORIGEN mesh at runtime;
+ *  geometry stays immutable). */
+export const MATERIAL_PRESETS: Record<MaterialPreset, {
+  label: string;
+  color: string;
+  roughness: number;
+  metalness: number;
+  envIntensity: number;
+  vertexColorBlend: number; // 0 = pure preset color, 1 = pure vertex colors
+}> = {
+  limestone: { label: 'Caliza', color: '#C7B493', roughness: 0.86, metalness: 0.0, envIntensity: 0.85, vertexColorBlend: 1.0 },
+  marble: { label: 'Mármol', color: '#E8E4DC', roughness: 0.28, metalness: 0.0, envIntensity: 1.1, vertexColorBlend: 0.35 },
+  basalt: { label: 'Basalto', color: '#3A3A3E', roughness: 0.62, metalness: 0.05, envIntensity: 0.7, vertexColorBlend: 0.25 },
+  weathered: { label: 'Patinada', color: '#8A7E66', roughness: 0.95, metalness: 0.0, envIntensity: 0.6, vertexColorBlend: 0.7 },
+};
 
 /** A saved bookmark = a snapshot of the view + material state. */
 export interface OrigenBookmark {
@@ -39,6 +56,7 @@ export interface OrigenBookmark {
   vertexColors: boolean;
   envIntensity: number;
   roughnessOverride: number | null;
+  materialPreset: MaterialPreset;
   autoRotate: boolean;
   showBackdrop: boolean;
   audioEnabled: boolean;
@@ -101,6 +119,12 @@ export interface MaterialState {
   compareView: boolean;              // summer | winter side by side
   // ── gallery mode (minimal chrome) ──
   galleryMode: boolean;
+  // ── postprocessing (bloom + vignette + chromatic aberration) ──
+  postprocessing: boolean;
+  // ── material preset (limestone / marble / basalt / weathered) ──
+  materialPreset: MaterialPreset;
+  // ── kiosk mode (auto-start gallery + auto-tour on load) ──
+  kiosk: boolean;
   // ── bookmarks (saved view + material snapshots, persisted to localStorage) ──
   bookmarks: OrigenBookmark[];
   showBookmarks: boolean;
@@ -140,6 +164,9 @@ export interface MaterialState {
   setGuidedTour: (v: boolean) => void;
   setCompareView: (v: boolean) => void;
   setGalleryMode: (v: boolean) => void;
+  setPostprocessing: (v: boolean) => void;
+  setMaterialPreset: (p: MaterialPreset) => void;
+  setKiosk: (v: boolean) => void;
   saveBookmark: (name: string) => void;
   deleteBookmark: (id: string) => void;
   applyBookmark: (id: string) => void;
@@ -174,6 +201,9 @@ const DEFAULTS = {
   guidedTour: false,
   compareView: false,
   galleryMode: false,
+  postprocessing: false,
+  materialPreset: 'limestone' as MaterialPreset,
+  kiosk: false,
 };
 
 const BOOKMARKS_KEY = 'origen-bookmarks';
@@ -246,6 +276,19 @@ export const useMaterialStore = create<MaterialState>((set) => ({
     })),
   setCompareView: (v) => set({ compareView: v }),
   setGalleryMode: (v) => set({ galleryMode: v }),
+  setPostprocessing: (v) => set({ postprocessing: v }),
+  // Switching material preset applies the preset's PBR params (color,
+  // roughness, metalness, env intensity, vertex-color blend) to the ORIGEN
+  // mesh. Geometry is never touched — only material parameters.
+  setMaterialPreset: (p) => {
+    const preset = MATERIAL_PRESETS[p];
+    set({
+      materialPreset: p,
+      roughnessOverride: preset.roughness,
+      envIntensity: preset.envIntensity,
+    });
+  },
+  setKiosk: (v) => set({ kiosk: v }),
   // Bookmarks: snapshot the current view + material state into a named entry
   // persisted to localStorage. The orbit coords are read from the global
   // (set by the CameraRig each frame) so the bookmark captures the exact
@@ -266,6 +309,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
         vertexColors: s.vertexColors,
         envIntensity: s.envIntensity,
         roughnessOverride: s.roughnessOverride,
+        materialPreset: s.materialPreset,
         autoRotate: s.autoRotate,
         showBackdrop: s.showBackdrop,
         audioEnabled: s.audioEnabled,
@@ -296,6 +340,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
         showEdges: bm.showEdges,
         vertexColors: bm.vertexColors,
         roughnessOverride: bm.roughnessOverride,
+        materialPreset: bm.materialPreset,
         autoRotate: bm.autoRotate,
         showBackdrop: bm.showBackdrop,
         audioEnabled: bm.audioEnabled,
