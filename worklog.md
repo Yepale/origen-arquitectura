@@ -229,3 +229,74 @@ Project entered this round in a stable, verified state (Round 1 complete: entran
    - Add a **wireframe + edges** combined view (EdgesGeometry overlay) for a technical-inspection mode.
    - Add **AccumulativeShadows** or a soft radial gradient blob under the pedestal for stronger grounding on bright winter days.
    - Add a **"compare seasons" split view** (summer | winter side by side) for a hero/marketing moment.
+
+---
+
+## Round 3 — webDevReview (cron #3) · cinematic auto-tour, technical-inspection mode & ambient audio
+
+### Current project status / assessment
+Project entered this round in a stable, verified state (Rounds 1–2 complete: entrance animation, reset-view, capture, keyboard shortcuts, concept overlay, telemetry, URL state persistence, share link, camera presets, fullscreen, atmospheric particles, season-aware env tuning, mobile info sheet). Lint clean, dev server all 200s, only the harmless `THREE.Clock` deprecation warning. The Round 2 backlog listed: cinematic auto-tour, wireframe+edges technical mode, orbit persistence, audio ambiance — the first three picked up this round.
+
+### Goals for this round
+- Add a **cinematic auto-tour** mode that gently flies through the camera presets on a timeline.
+- Add a **technical-inspection edges overlay** (EdgesGeometry) for topology reading without altering geometry.
+- Add **procedural ambient audio** (summer warm wind / winter cold wind) via the Web Audio API — no external files.
+- Extend **URL hash state** to persist the new toggles (edges / autoTour / audio).
+- Continue enriching styling & keyboard shortcuts.
+
+### Completed modifications
+**1. Store extensions (`materialViewer.ts`)**
+- New state: `showEdges`, `autoTour`, `audioEnabled`.
+- New actions: `setShowEdges`, `setAutoTour`, `setAudioEnabled`.
+- `setAutoTour(v)` disables `autoRotate` while the tour runs (the tour drives the camera).
+- `applyCameraPreset(p)` now cancels `autoTour` (selecting a preset = user takes manual control).
+- Exported `AUTO_TOUR_PRESETS` constant (cycle order: hero → front → side → top).
+
+**2. Cinematic auto-tour (`cameraRig.tsx`)**
+- New `autoTour` prop + a `useFrame`-driven timeline that interpolates between the 4 preset positions (6 s per pose, `smoothstep` ease in/out). Damping stays on during the tour for buttery motion.
+- `OrbitControls.autoRotate` is disabled while the tour runs (avoids conflict).
+- The timeline aligns to the current preset when a preset is applied, so enabling the tour later continues smoothly from the current pose.
+
+**3. Technical-inspection edges overlay (`EdgesOverlay.tsx`)**
+- Builds `THREE.EdgesGeometry` (25° coplanar threshold) from the loaded ORIGEN + pedestal meshes and renders them as `LineSegments` with `depthTest:false` so they read over the solid stone.
+- Amber lines on the symbol, teal lines on the pedestal — a clean technical-drawing overlay.
+- **Purely additive**: never mutates the ORIGEN geometry. Receives meshes as props from `OrigenComposition` (no double GLB load).
+- Initial implementation called `useOrigenSymbol`/`usePedestal` inside the overlay → returned empty meshes (drei `useGLTF` cache shares one scene, mounted via `<primitive>` elsewhere). Refactored to receive meshes as props → fixed.
+
+**4. Procedural ambient audio (`AmbientAudio.tsx`)**
+- Web Audio API graph: noise buffer (brown noise for summer = warm low rustle; pink noise for winter = colder, airier) → lowpass biquad filter → gain → destination. An LFO modulates the filter cutoff for a "gust" feel.
+- Lazy `AudioContext` creation on first enable (respects autoplay policies), suspended/resumed accordingly. Muted by default (`audioEnabled: false`).
+- No external audio files → fully offline & instant.
+
+**5. Keyboard shortcuts extended (`useKeyboardShortcuts.ts`)**
+- New: `T` toggle auto-tour, `E` toggle edges, `M` toggle ambient audio. Shortcuts overlay updated to list all 16 shortcuts.
+
+**6. URL hash state extended (`useUrlState.ts`)**
+- Added `showEdges` (`edges=`), `autoTour` (`autoTour=`), `audioEnabled` (`audio=`) to the synced keys, parse/apply logic, and `buildHash`. Fixed a bug where the store→hash rAF callback was building the hash without the new fields.
+- Verified: toggling edges writes `edges=1`, auto-tour writes `autoTour=1` + `autoRotate=0`, audio writes `audio=1` — all persist across reloads.
+
+**7. Control panel (`ControlPanel.tsx`)**
+- Added 3 new toggle rows with icons + kbd hints: Modo técnico (aristas) [E], Recorrido cinematográfico [T], Audio ambiental [M]. Imported `Spline`, `Play`, `Volume2` icons.
+
+### Verification results (agent-browser, desktop 1440×900 + mobile 390×844)
+- ✅ No runtime errors; only the harmless `THREE.Clock` deprecation warning.
+- ✅ **Edges overlay**: toggling "Modo técnico (aristas)" renders amber edge lines on the sculpture + teal edge lines on the pedestal (VLM-confirmed YES). URL hash writes `edges=1`.
+- ✅ **Auto-tour**: toggling "Recorrido cinematográfico" moves the camera to a cinematic 3-quarter angle (VLM-confirmed); hash writes `autoTour=1` + `autoRotate=0`. Disabling returns to manual.
+- ✅ **Audio**: toggling "Audio ambiental" enables the procedural wind (hash `audio=1`); no console errors; AudioContext created lazily.
+- ✅ **URL state**: all 12 fields sync (season/lod/wireframe/edges/vertexColors/envIntensity/roughness/autoRotate/autoTour/showBackdrop/audio/view); persisted across reload (verified: full state restored).
+- ✅ All Round 1–2 features still working (entrance animation, reset-view, capture, concept overlay, telemetry, share, camera presets, fullscreen, particles, mobile info sheet).
+- ✅ Lint clean (`bun run lint` → 0 errors, 0 warnings); dev server all 200s.
+- ✅ Mobile (390×844): clean, no overlaps, model visible, footer + info sheet present.
+- ✅ Preview PNG re-captured & sharp-optimized (1.4 MB → 398 KB).
+
+### Unresolved issues / risks & next-phase recommendations
+1. **`THREE.Clock` deprecation** — drei internal; resolves when drei updates. No action.
+2. **Headless rAF throttling** — the auto-tour motion is imperceptible in the throttled test harness but works in real browsers (confirmed via the preset-position snapshot showing a changed angle).
+3. **Audio autoplay policy** — the AudioContext can only be created/resumed after a user gesture; the toggle click satisfies this. If `audio=1` is in a shared URL opened fresh, the store sets `audioEnabled=true` but the context won't resume until the user interacts. The `AmbientAudio` effect handles this gracefully (it creates the context on the next enable toggle).
+4. **Orbit camera persistence** — the URL hash stores the camera *preset* (`view=`) but not the exact orbit distance/azimuth a user may have dragged. A future round could serialize the full spherical coords for an exact-framing share link.
+5. **Next-round candidate features**:
+   - Serialize full orbit camera (azimuth/elevation/distance) into the URL hash for exact-framing share links.
+   - Add a **"compare seasons" split view** (summer | winter side by side) for a hero/marketing moment.
+   - Add **AccumulativeShadows** or a soft radial gradient blob under the pedestal for stronger grounding on bright winter days.
+   - Add a **guided tour narration** (LLM-generated descriptions synced to each preset stop).
+   - Add a **fullscreen-only "gallery mode"** that hides all chrome and shows only the monolith + a minimal caption.

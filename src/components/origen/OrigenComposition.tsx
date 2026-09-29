@@ -28,6 +28,7 @@ import { useOrigenSymbol } from '@/3d/masterSymbol';
 import { usePedestal } from '@/3d/pedestal';
 import { applyHoverState, useInteraction } from '@/3d/interaction';
 import { syncMaterialState, setMaterialsTransparent, setMaterialsOpacity, useMaterialStore } from '@/3d/materialViewer';
+import { EdgesOverlay } from './EdgesOverlay';
 
 export interface CompositionInfo {
   symbolHeight: number;
@@ -57,7 +58,7 @@ export function OrigenComposition({
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
 
   const { symbol, size, meshes } = useOrigenSymbol(lod);
-  const { pedestal, topY } = usePedestal();
+  const { pedestal, topY, pedestalMeshes } = usePedestal();
   const inter = useInteraction();
   const { gl } = useThree();
 
@@ -207,6 +208,9 @@ export function OrigenComposition({
           <primitive object={symbol} castShadow receiveShadow />
         </group>
       </group>
+      {/* Technical-inspection edges overlay (amber on symbol, teal on pedestal).
+          Purely additive — never mutates the ORIGEN geometry. */}
+      <EdgesOverlay meshes={meshes} pedestalMeshes={pedestalMeshes} symbolWorldY={symbolWorldY} />
     </group>
   );
 }

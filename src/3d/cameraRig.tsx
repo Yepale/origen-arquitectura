@@ -8,13 +8,19 @@
  *   - cameraPresetSignal: snap to a named cinematic pose (hero / front /
  *     side / top). The target stays on the composition center; only the
  *     azimuth / elevation / distance change.
+ *   - autoTour: a gentle cinematic fly-through that interpolates between
+ *     the presets on a timeline (6 s per pose, smooth ease in/out).
  *
  * Damping is briefly disabled during snaps so they're instant.
  */
 import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import type { CameraPreset } from '@/3d/materialViewer';
+import {
+  AUTO_TOUR_PRESETS,
+  type CameraPreset,
+} from '@/3d/materialViewer';
 
 export interface CameraRigProps {
   compositionHeight: number;
@@ -26,6 +32,8 @@ export interface CameraRigProps {
   /** Increment to apply `cameraPreset`. */
   cameraPresetSignal: number;
   cameraPreset: CameraPreset;
+  /** Cinematic auto-tour: gentle fly-through the presets. */
+  autoTour: boolean;
 }
 
 /** Comfortable camera distance to fit a target box at a given fov & aspect. */
@@ -67,6 +75,13 @@ function presetPosition(
   }
 }
 
+// Smooth ease in/out for the auto-tour interpolation.
+function smoothstep(t: number) {
+  return t * t * (3 - 2 * t);
+}
+
+const TOUR_SEGMENT_SECONDS = 6; // time per preset in the auto-tour
+
 export function CameraRig({
   compositionHeight,
   compositionWidth,
@@ -75,14 +90,24 @@ export function CameraRig({
   resetViewSignal,
   cameraPresetSignal,
   cameraPreset,
+  autoTour,
 }: CameraRigProps) {
   const targetY = compositionHeight * 0.52;
   const controlsRef = useRef<any>(null);
+  // Auto-tour timeline accumulator (seconds, wraps around the full cycle).
+  const tourT = useRef(0);
 
   const pos = useMemo<[number, number, number]>(
     () => defaultPosition(compositionHeight, compositionWidth, targetY),
     [compositionHeight, compositionWidth, targetY]
   );
+
+  // Cache of preset positions for the tour (recomputed on dimension change).
+  const tourPositions = useMemo(() => {
+    return AUTO_TOUR_PRESETS.map((p) =>
+      presetPosition(p, compositionHeight, compositionWidth, targetY)
+    );
+  }, [compositionHeight, compositionWidth, targetY]);
 
   // Reset the orbit controls to the default pose whenever the signal changes.
   useEffect(() => {
@@ -95,6 +120,7 @@ export function CameraRig({
     c.object.updateProjectionMatrix?.();
     c.update();
     c.enableDamping = wasDamped;
+    tourT.current = 0;
   }, [resetViewSignal, targetY, pos]);
 
   // Apply a cinematic preset whenever the preset signal changes.
@@ -109,7 +135,37 @@ export function CameraRig({
     c.object.updateProjectionMatrix?.();
     c.update();
     c.enableDamping = wasDamped;
+    // Align the tour timeline to the chosen preset so enabling the tour later
+    // continues smoothly from the current pose.
+    const idx = AUTO_TOUR_PRESETS.indexOf(cameraPreset);
+    if (idx >= 0) tourT.current = idx * TOUR_SEGMENT_SECONDS;
   }, [cameraPresetSignal, cameraPreset, compositionHeight, compositionWidth, targetY]);
+
+  // Cinematic auto-tour: interpolate between preset positions on a timeline.
+  useFrame((_, delta) => {
+    if (!autoTour) return;
+    const c = controlsRef.current;
+    if (!c) return;
+    const cycle = AUTO_TOUR_PRESETS.length * TOUR_SEGMENT_SECONDS;
+    tourT.current = (tourT.current + Math.min(delta, 0.05)) % cycle;
+    const segF = tourT.current / TOUR_SEGMENT_SECONDS;
+    const segIdx = Math.floor(segF) % AUTO_TOUR_PRESETS.length;
+    const nextIdx = (segIdx + 1) % AUTO_TOUR_PRESETS.length;
+    const localT = smoothstep(segF - Math.floor(segF));
+    const a = tourPositions[segIdx];
+    const b = tourPositions[nextIdx];
+    const x = THREE.MathUtils.lerp(a[0], b[0], localT);
+    const y = THREE.MathUtils.lerp(a[1], b[1], localT);
+    const z = THREE.MathUtils.lerp(a[2], b[2], localT);
+    // Use damping for the tour so motion is buttery.
+    const wasDamped = c.enableDamping;
+    c.enableDamping = true;
+    c.target.set(0, targetY, 0);
+    c.object.position.set(x, y, z);
+    c.object.updateProjectionMatrix?.();
+    c.update();
+    c.enableDamping = wasDamped;
+  });
 
   return (
     <>
@@ -130,7 +186,9 @@ export function CameraRig({
         maxDistance={16}
         minPolarAngle={THREE.MathUtils.degToRad(20)}
         maxPolarAngle={THREE.MathUtils.degToRad(82)}
-        autoRotate={autoRotate}
+        // Auto-tour drives the camera directly; disable OrbitControls' own
+        // auto-rotate to avoid a conflict. Otherwise honor the user toggle.
+        autoRotate={autoRotate && !autoTour}
         autoRotateSpeed={autoRotateSpeed}
         enablePan
       />

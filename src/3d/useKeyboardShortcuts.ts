@@ -5,13 +5,16 @@
  * Global keyboard shortcuts for the ORIGEN viewer:
  *   1 / 2 / 3   → LOD master / lod1 / lod2
  *   W           → toggle wireframe
+ *   E           → toggle edges overlay (technical-inspection mode)
  *   S           → toggle season (summer ↔ winter)
  *   A           → toggle auto-rotate
+ *   T           → toggle cinematic auto-tour
  *   B           → toggle backdrop
+ *   M           → toggle ambient audio
  *   R           → reset view
  *   C           → capture PNG
  *   V           → toggle vertex colors
- *   P           → cycle camera preset (front → hero → side → top)
+ *   P           → cycle camera preset (hero → front → side → top)
  *   F           → toggle fullscreen
  *   L           → copy share link (URL hash encodes current state)
  *   ? / H       → toggle shortcuts overlay
@@ -58,14 +61,23 @@ export function useKeyboardShortcuts() {
         case 'w':
           s.setWireframe(!s.wireframe);
           break;
+        case 'e':
+          s.setShowEdges(!s.showEdges);
+          break;
         case 's':
           s.setSeason(s.season === 'summer' ? 'winter' : 'summer');
           break;
         case 'a':
           s.setAutoRotate(!s.autoRotate);
           break;
+        case 't':
+          s.setAutoTour(!s.autoTour);
+          break;
         case 'b':
           s.setShowBackdrop(!s.showBackdrop);
+          break;
+        case 'm':
+          s.setAudioEnabled(!s.audioEnabled);
           break;
         case 'v':
           s.setVertexColors(!s.vertexColors);

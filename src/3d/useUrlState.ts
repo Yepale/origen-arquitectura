@@ -25,11 +25,14 @@ const SYNCED_KEYS = [
   'season',
   'lod',
   'wireframe',
+  'showEdges',
   'vertexColors',
   'envIntensity',
   'roughnessOverride',
   'autoRotate',
+  'autoTour',
   'showBackdrop',
+  'audioEnabled',
   'cameraPreset',
 ] as const;
 
@@ -55,6 +58,9 @@ function parseHash(): Partial<Record<(typeof SYNCED_KEYS)[number], unknown>> {
       case 'wireframe':
         out.wireframe = v === '1';
         break;
+      case 'showEdges':
+        out.showEdges = v === '1';
+        break;
       case 'vertexColors':
         out.vertexColors = v === '1';
         break;
@@ -74,8 +80,14 @@ function parseHash(): Partial<Record<(typeof SYNCED_KEYS)[number], unknown>> {
       case 'autoRotate':
         out.autoRotate = v === '1';
         break;
+      case 'autoTour':
+        out.autoTour = v === '1';
+        break;
       case 'showBackdrop':
         out.showBackdrop = v === '1';
+        break;
+      case 'audio':
+        out.audioEnabled = v === '1';
         break;
       case 'view':
         if (PRESETS.includes(v as CameraPreset)) out.cameraPreset = v as CameraPreset;
@@ -89,22 +101,28 @@ function buildHash(s: {
   season: Season;
   lod: LOD;
   wireframe: boolean;
+  showEdges: boolean;
   vertexColors: boolean;
   envIntensity: number;
   roughnessOverride: number | null;
   autoRotate: boolean;
+  autoTour: boolean;
   showBackdrop: boolean;
+  audioEnabled: boolean;
   cameraPreset: CameraPreset;
 }): string {
   const parts = [
     `season=${s.season}`,
     `lod=${s.lod}`,
     `wireframe=${s.wireframe ? '1' : '0'}`,
+    `edges=${s.showEdges ? '1' : '0'}`,
     `vertexColors=${s.vertexColors ? '1' : '0'}`,
     `envIntensity=${s.envIntensity.toFixed(2)}`,
     `roughness=${s.roughnessOverride === null ? 'auto' : s.roughnessOverride.toFixed(2)}`,
     `autoRotate=${s.autoRotate ? '1' : '0'}`,
+    `autoTour=${s.autoTour ? '1' : '0'}`,
     `showBackdrop=${s.showBackdrop ? '1' : '0'}`,
+    `audio=${s.audioEnabled ? '1' : '0'}`,
     `view=${s.cameraPreset}`,
   ];
   return parts.join('&');
@@ -118,11 +136,14 @@ export function useUrlState() {
     if (parsed.season) store.setSeason(parsed.season as Season);
     if (parsed.lod) store.setLod(parsed.lod as LOD);
     if (typeof parsed.wireframe === 'boolean') store.setWireframe(parsed.wireframe);
+    if (typeof parsed.showEdges === 'boolean') store.setShowEdges(parsed.showEdges);
     if (typeof parsed.vertexColors === 'boolean') store.setVertexColors(parsed.vertexColors);
     if (typeof parsed.envIntensity === 'number') store.setEnvIntensity(parsed.envIntensity);
     if (parsed.roughnessOverride !== undefined) store.setRoughness(parsed.roughnessOverride as number | null);
     if (typeof parsed.autoRotate === 'boolean') store.setAutoRotate(parsed.autoRotate);
+    if (typeof parsed.autoTour === 'boolean') store.setAutoTour(parsed.autoTour);
     if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
+    if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
     if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
   }, []);
 
@@ -150,11 +171,14 @@ export function useUrlState() {
           season: s.season,
           lod: s.lod,
           wireframe: s.wireframe,
+          showEdges: s.showEdges,
           vertexColors: s.vertexColors,
           envIntensity: s.envIntensity,
           roughnessOverride: s.roughnessOverride,
           autoRotate: s.autoRotate,
+          autoTour: s.autoTour,
           showBackdrop: s.showBackdrop,
+          audioEnabled: s.audioEnabled,
           cameraPreset: s.cameraPreset,
         });
         if (window.location.hash !== `#${hash}`) {
@@ -176,11 +200,14 @@ export function useUrlState() {
       if (parsed.season) store.setSeason(parsed.season as Season);
       if (parsed.lod) store.setLod(parsed.lod as LOD);
       if (typeof parsed.wireframe === 'boolean') store.setWireframe(parsed.wireframe);
+      if (typeof parsed.showEdges === 'boolean') store.setShowEdges(parsed.showEdges);
       if (typeof parsed.vertexColors === 'boolean') store.setVertexColors(parsed.vertexColors);
       if (typeof parsed.envIntensity === 'number') store.setEnvIntensity(parsed.envIntensity);
       if (parsed.roughnessOverride !== undefined) store.setRoughness(parsed.roughnessOverride as number | null);
       if (typeof parsed.autoRotate === 'boolean') store.setAutoRotate(parsed.autoRotate);
+      if (typeof parsed.autoTour === 'boolean') store.setAutoTour(parsed.autoTour);
       if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
+      if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
       if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
     };
     window.addEventListener('hashchange', onHash);
@@ -195,11 +222,14 @@ export function buildShareUrl(): string {
     season: s.season,
     lod: s.lod,
     wireframe: s.wireframe,
+    showEdges: s.showEdges,
     vertexColors: s.vertexColors,
     envIntensity: s.envIntensity,
     roughnessOverride: s.roughnessOverride,
     autoRotate: s.autoRotate,
+    autoTour: s.autoTour,
     showBackdrop: s.showBackdrop,
+    audioEnabled: s.audioEnabled,
     cameraPreset: s.cameraPreset,
   });
   if (typeof window === 'undefined') return `#${hash}`;

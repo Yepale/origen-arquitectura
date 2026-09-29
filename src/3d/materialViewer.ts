@@ -32,9 +32,13 @@ export const SEASON_ENV_DEFAULTS: Record<Season, number> = {
   winter: 0.7,
 };
 
+/** Cinematic auto-tour cycle order. */
+export const AUTO_TOUR_PRESETS: CameraPreset[] = ['hero', 'front', 'side', 'top'];
+
 export interface MaterialState {
   // ── material params ──
   wireframe: boolean;
+  showEdges: boolean;                 // technical-inspection: EdgesGeometry overlay
   roughnessOverride: number | null;   // null = use material default (0.86)
   vertexColors: boolean;
   envIntensity: number;
@@ -43,6 +47,9 @@ export interface MaterialState {
   season: Season;
   autoRotate: boolean;
   showBackdrop: boolean;
+  audioEnabled: boolean;              // ambient wind audio (muted by default)
+  // ── cinematic auto-tour ──
+  autoTour: boolean;                 // gentle fly-through the presets
   // ── transient signals (increment to trigger an action) ──
   resetViewSignal: number;
   captureSignal: number;
@@ -63,6 +70,7 @@ export interface MaterialState {
   loaded: boolean;
 
   setWireframe: (v: boolean) => void;
+  setShowEdges: (v: boolean) => void;
   setRoughness: (v: number | null) => void;
   setVertexColors: (v: boolean) => void;
   setEnvIntensity: (v: number) => void;
@@ -70,6 +78,8 @@ export interface MaterialState {
   setSeason: (s: Season) => void;
   setAutoRotate: (v: boolean) => void;
   setShowBackdrop: (v: boolean) => void;
+  setAudioEnabled: (v: boolean) => void;
+  setAutoTour: (v: boolean) => void;
   resetView: () => void;
   capture: () => void;
   applyCameraPreset: (p: CameraPreset) => void;
@@ -86,6 +96,7 @@ export interface MaterialState {
 
 const DEFAULTS = {
   wireframe: false,
+  showEdges: false,
   roughnessOverride: null,
   vertexColors: true,
   envIntensity: 0.85,
@@ -93,6 +104,8 @@ const DEFAULTS = {
   season: 'summer' as Season,
   autoRotate: true,
   showBackdrop: true,
+  audioEnabled: false,
+  autoTour: false,
 };
 
 export const useMaterialStore = create<MaterialState>((set) => ({
@@ -113,6 +126,7 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   loaded: false,
 
   setWireframe: (v) => set({ wireframe: v }),
+  setShowEdges: (v) => set({ showEdges: v }),
   setRoughness: (v) => set({ roughnessOverride: v }),
   setVertexColors: (v) => set({ vertexColors: v }),
   setEnvIntensity: (v) => set({ envIntensity: v }),
@@ -122,10 +136,18 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   setSeason: (s) => set({ season: s, envIntensity: SEASON_ENV_DEFAULTS[s] }),
   setAutoRotate: (v) => set({ autoRotate: v }),
   setShowBackdrop: (v) => set({ showBackdrop: v }),
+  setAudioEnabled: (v) => set({ audioEnabled: v }),
+  // Auto-tour implies disabling manual auto-rotate (the tour drives the camera).
+  setAutoTour: (v) => set({ autoTour: v, autoRotate: v ? false : useMaterialStore.getState().autoRotate }),
   resetView: () => set((s) => ({ resetViewSignal: s.resetViewSignal + 1 })),
   capture: () => set((s) => ({ captureSignal: s.captureSignal + 1 })),
   applyCameraPreset: (p) =>
-    set((s) => ({ cameraPreset: p, cameraPresetSignal: s.cameraPresetSignal + 1 })),
+    set((s) => ({
+      cameraPreset: p,
+      cameraPresetSignal: s.cameraPresetSignal + 1,
+      // Selecting a preset cancels the auto-tour (user took manual control).
+      autoTour: false,
+    })),
   share: () => set((s) => ({ shareSignal: s.shareSignal + 1 })),
   toggleShortcuts: () => set((s) => ({ showShortcuts: !s.showShortcuts })),
   openConcept: (tag) => set({ showConcept: true, conceptTag: tag }),

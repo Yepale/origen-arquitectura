@@ -21,6 +21,8 @@ export interface PedestalData {
   topY: number;
   /** World-space Y of the pedestal's base (always 0). */
   baseY: number;
+  /** Meshes inside the pedestal (for edges overlay / inspection). */
+  pedestalMeshes: THREE.Mesh[];
 }
 
 export function usePedestal(): PedestalData {
@@ -30,12 +32,17 @@ export function usePedestal(): PedestalData {
     const bbox = new THREE.Box3().setFromObject(pedestal);
     const size = new THREE.Vector3();
     bbox.getSize(size);
+    const pedestalMeshes: THREE.Mesh[] = [];
+    pedestal.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) pedestalMeshes.push(o as THREE.Mesh);
+    });
     return {
       pedestal,
       bbox,
       size,
       baseY: 0,
       topY: bbox.max.y,   // pedestal geometry already has base at Y=0
+      pedestalMeshes,
     };
   }, [scene]);
 }

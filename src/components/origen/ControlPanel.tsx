@@ -49,6 +49,9 @@ import {
   Activity,
   Triangle,
   Gauge,
+  Spline,
+  Play,
+  Volume2,
 } from 'lucide-react';
 
 export function ControlPanel() {
@@ -145,9 +148,12 @@ export function ControlPanel() {
         {/* Material toggles */}
         <div className="space-y-3">
           <ToggleRow icon={<Grid3x3 className="h-3.5 w-3.5" />} label="Wireframe" kbd="W" checked={s.wireframe} onCheckedChange={s.setWireframe} />
+          <ToggleRow icon={<Spline className="h-3.5 w-3.5" />} label="Modo técnico (aristas)" kbd="E" checked={s.showEdges} onCheckedChange={s.setShowEdges} />
           <ToggleRow icon={<Palette className="h-3.5 w-3.5" />} label="Color vértice (piedra)" kbd="V" checked={s.vertexColors} onCheckedChange={s.setVertexColors} />
           <ToggleRow icon={<Eye className="h-3.5 w-3.5" />} label="Panorama de fondo" kbd="B" checked={s.showBackdrop} onCheckedChange={s.setShowBackdrop} />
           <ToggleRow icon={<RotateCw className="h-3.5 w-3.5" />} label="Auto-orbita" kbd="A" checked={s.autoRotate} onCheckedChange={s.setAutoRotate} />
+          <ToggleRow icon={<Play className="h-3.5 w-3.5" />} label="Recorrido cinematográfico" kbd="T" checked={s.autoTour} onCheckedChange={s.setAutoTour} />
+          <ToggleRow icon={<Volume2 className="h-3.5 w-3.5" />} label="Audio ambiental" kbd="M" checked={s.audioEnabled} onCheckedChange={s.setAudioEnabled} />
         </div>
 
         <Separator className="bg-stone-700/50" />

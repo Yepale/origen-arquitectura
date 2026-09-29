@@ -4,10 +4,9 @@
  *
  * Hosts: scene manager (lights + env + fog), atmospheric particle layer
  * (dust motes in summer / snowfall in winter), camera rig (with reset-view
- * + cinematic presets), the assembled composition (pedestal + symbol,
- * with entrance animation + capture + telemetry), and a transparent
- * canvas so the CSS panoramic backdrop shows through. Fog blends the
- * monolith base into the panorama haze.
+ * + cinematic presets + auto-tour), the assembled composition (pedestal +
+ * symbol, with entrance animation + capture + telemetry + edges overlay),
+ * and a transparent canvas so the CSS panoramic backdrop shows through.
  *
  * Shadow type is set to PCFShadowMap explicitly (three 0.186 removed
  * PCFSoftShadowMap, which R3F's `shadows` boolean defaults to — that
@@ -23,10 +22,12 @@ import { OrigenComposition, type CompositionInfo } from './OrigenComposition';
 import { Atmosphere } from './Atmosphere';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { OrigenLoader } from './OrigenLoader';
+import { AmbientAudio } from './AmbientAudio';
 
 export function OrigenViewer() {
   const season = useMaterialStore((s) => s.season);
   const autoRotate = useMaterialStore((s) => s.autoRotate);
+  const autoTour = useMaterialStore((s) => s.autoTour);
   const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
   const cameraPresetSignal = useMaterialStore((s) => s.cameraPresetSignal);
   const cameraPreset = useMaterialStore((s) => s.cameraPreset);
@@ -55,6 +56,7 @@ export function OrigenViewer() {
             compositionHeight={info.compositionHeight}
             compositionWidth={info.compositionWidth}
             autoRotate={autoRotate}
+            autoTour={autoTour}
             resetViewSignal={resetViewSignal}
             cameraPresetSignal={cameraPresetSignal}
             cameraPreset={cameraPreset}
@@ -62,6 +64,8 @@ export function OrigenViewer() {
         )}
         <OrigenComposition onLoaded={onLoaded} />
       </Suspense>
+      {/* Ambient wind audio (DOM-side, not in the 3D graph). */}
+      <AmbientAudio season={season as Season} />
     </Canvas>
   );
 }
