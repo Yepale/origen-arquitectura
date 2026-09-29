@@ -31,6 +31,9 @@ const SYNCED_KEYS = [
   'roughnessOverride',
   'autoRotate',
   'autoTour',
+  'guidedTour',
+  'compareView',
+  'galleryMode',
   'showBackdrop',
   'audioEnabled',
   'cameraPreset',
@@ -83,6 +86,15 @@ function parseHash(): Partial<Record<(typeof SYNCED_KEYS)[number], unknown>> {
       case 'autoTour':
         out.autoTour = v === '1';
         break;
+      case 'guided':
+        out.guidedTour = v === '1';
+        break;
+      case 'compare':
+        out.compareView = v === '1';
+        break;
+      case 'gallery':
+        out.galleryMode = v === '1';
+        break;
       case 'showBackdrop':
         out.showBackdrop = v === '1';
         break;
@@ -107,6 +119,9 @@ function buildHash(s: {
   roughnessOverride: number | null;
   autoRotate: boolean;
   autoTour: boolean;
+  guidedTour: boolean;
+  compareView: boolean;
+  galleryMode: boolean;
   showBackdrop: boolean;
   audioEnabled: boolean;
   cameraPreset: CameraPreset;
@@ -121,6 +136,9 @@ function buildHash(s: {
     `roughness=${s.roughnessOverride === null ? 'auto' : s.roughnessOverride.toFixed(2)}`,
     `autoRotate=${s.autoRotate ? '1' : '0'}`,
     `autoTour=${s.autoTour ? '1' : '0'}`,
+    `guided=${s.guidedTour ? '1' : '0'}`,
+    `compare=${s.compareView ? '1' : '0'}`,
+    `gallery=${s.galleryMode ? '1' : '0'}`,
     `showBackdrop=${s.showBackdrop ? '1' : '0'}`,
     `audio=${s.audioEnabled ? '1' : '0'}`,
     `view=${s.cameraPreset}`,
@@ -142,6 +160,9 @@ export function useUrlState() {
     if (parsed.roughnessOverride !== undefined) store.setRoughness(parsed.roughnessOverride as number | null);
     if (typeof parsed.autoRotate === 'boolean') store.setAutoRotate(parsed.autoRotate);
     if (typeof parsed.autoTour === 'boolean') store.setAutoTour(parsed.autoTour);
+    if (typeof parsed.guidedTour === 'boolean') store.setGuidedTour(parsed.guidedTour);
+    if (typeof parsed.compareView === 'boolean') store.setCompareView(parsed.compareView);
+    if (typeof parsed.galleryMode === 'boolean') store.setGalleryMode(parsed.galleryMode);
     if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
     if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
     if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
@@ -177,6 +198,9 @@ export function useUrlState() {
           roughnessOverride: s.roughnessOverride,
           autoRotate: s.autoRotate,
           autoTour: s.autoTour,
+          guidedTour: s.guidedTour,
+          compareView: s.compareView,
+          galleryMode: s.galleryMode,
           showBackdrop: s.showBackdrop,
           audioEnabled: s.audioEnabled,
           cameraPreset: s.cameraPreset,
@@ -206,6 +230,9 @@ export function useUrlState() {
       if (parsed.roughnessOverride !== undefined) store.setRoughness(parsed.roughnessOverride as number | null);
       if (typeof parsed.autoRotate === 'boolean') store.setAutoRotate(parsed.autoRotate);
       if (typeof parsed.autoTour === 'boolean') store.setAutoTour(parsed.autoTour);
+      if (typeof parsed.guidedTour === 'boolean') store.setGuidedTour(parsed.guidedTour);
+      if (typeof parsed.compareView === 'boolean') store.setCompareView(parsed.compareView);
+      if (typeof parsed.galleryMode === 'boolean') store.setGalleryMode(parsed.galleryMode);
       if (typeof parsed.showBackdrop === 'boolean') store.setShowBackdrop(parsed.showBackdrop);
       if (typeof parsed.audioEnabled === 'boolean') store.setAudioEnabled(parsed.audioEnabled);
       if (parsed.cameraPreset) store.applyCameraPreset(parsed.cameraPreset as CameraPreset);
@@ -228,6 +255,9 @@ export function buildShareUrl(): string {
     roughnessOverride: s.roughnessOverride,
     autoRotate: s.autoRotate,
     autoTour: s.autoTour,
+    guidedTour: s.guidedTour,
+    compareView: s.compareView,
+    galleryMode: s.galleryMode,
     showBackdrop: s.showBackdrop,
     audioEnabled: s.audioEnabled,
     cameraPreset: s.cameraPreset,

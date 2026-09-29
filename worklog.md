@@ -300,3 +300,72 @@ Project entered this round in a stable, verified state (Rounds 1–2 complete: e
    - Add **AccumulativeShadows** or a soft radial gradient blob under the pedestal for stronger grounding on bright winter days.
    - Add a **guided tour narration** (LLM-generated descriptions synced to each preset stop).
    - Add a **fullscreen-only "gallery mode"** that hides all chrome and shows only the monolith + a minimal caption.
+
+---
+
+## Round 4 — webDevReview (cron #4) · gallery mode, guided tour & compare-seasons split view
+
+### Current project status / assessment
+Project entered this round in a stable, verified state (Rounds 1–3 complete: entrance animation, reset-view, capture, keyboard shortcuts, concept overlay, telemetry, URL state, share, camera presets, fullscreen, particles, season-aware env, mobile info sheet, auto-tour, edges overlay, ambient audio). Lint clean, dev server all 200s, only the harmless `THREE.Clock` deprecation warning. The Round 3 backlog listed: gallery mode, guided tour narration, compare-seasons split view — all picked up this round.
+
+### Goals for this round
+- Add a **gallery mode** (minimal chrome — hides header/panels/footer, keeps only the 3D + a slim caption).
+- Add a **guided tour** (auto-tour + synchronized narration cards that cross-fade per preset).
+- Add a **compare-seasons split view** (summer | winter side by side with a VS divider).
+- Extend **URL hash state** to persist the three new modes.
+- Continue enriching the action toolbar + keyboard shortcuts.
+
+### Completed modifications
+**1. Store extensions (`materialViewer.ts`)**
+- New state: `guidedTour`, `compareView`, `galleryMode`.
+- New actions: `setGuidedTour`, `setCompareView`, `setGalleryMode`.
+- `setGuidedTour(v)` enables the auto-tour + disables auto-rotate when on; clean handoff when off.
+- `applyCameraPreset(p)` now cancels both `autoTour` and `guidedTour` (manual control).
+- Exported `PRESET_NARRATION` — on-brand Spanish copy for each of the 4 presets (Heroica / Frontal / Perfil / Cenital).
+
+**2. Gallery mode (`GalleryMode.tsx` + page chrome-hiding)**
+- A `galleryMode` store flag; when on, the page adds `opacity-0 pointer-events-none` to header, footer, control panel, info card, and action toolbar (500 ms transition). The 3D canvas stays full-focus.
+- The `GalleryMode` overlay renders a subtle exit button (top-right) + a minimal bottom caption pill ("ORIGEN · Símbolo maestro · Sierra de Albarracín").
+- `G` key toggles; `Esc` exits.
+
+**3. Guided tour (`GuidedTourCard.tsx` + camera-rig sync)**
+- While `guidedTour` is on, a slim bottom-center card shows the current preset's title + body, cross-fading (`AnimatePresence mode="wait"`) as the auto-tour moves through presets. Progress dots (1/4 → 4/4) + a close button.
+- The CameraRig's auto-tour `useFrame` now keeps the store's `cameraPreset` in sync with the current tour segment (only sets state when the segment changes — no per-frame storm), so the narration card follows the camera.
+- `N` key toggles.
+
+**4. Compare-seasons split view (`CompareView.tsx`)**
+- A full-screen fixed overlay splitting the viewport into summer (left) | winter (right), each with its panoramic backdrop, a warm/cool gradient tint, and a labeled season pill (Verano / Invierno). A center divider with a "VS" badge + a top caption "ORIGEN · Verano / Invierno". Close button top-right.
+- Spring-animated halves slide in from the edges.
+- `X` key toggles; `Esc` closes.
+
+**5. Action toolbar expanded (`ActionToolbar.tsx`)**
+- Added 3 new buttons to the cluster: Recorrido guiado (Play, N), Comparar estaciones (Columns2, X), Modo galería (GalleryVerticalEnd, G). Active state uses an amber-highlighted `btnActive` style.
+
+**6. Keyboard shortcuts extended (`useKeyboardShortcuts.ts`)**
+- New: `N` guided tour, `G` gallery mode, `X` compare view. `Esc` now also closes compare view + gallery mode. 19 total shortcuts listed in the overlay.
+
+**7. URL hash state extended (`useUrlState.ts`)**
+- Added `guidedTour` (`guided=`), `compareView` (`compare=`), `galleryMode` (`gallery=`) to SYNCED_KEYS, parse/apply, and buildHash (15 synced fields total).
+- **Fixed a parse-key bug**: the hash keys are `guided`/`compare`/`gallery` but the parse switch was looking for `guidedTour`/`compareView`/`galleryMode` → the restore-on-mount silently failed. Aligned the parse cases with the hash keys. Verified: `#gallery=1` now correctly restores gallery mode across a reload (header opacity → 0).
+
+### Verification results (agent-browser, desktop 1440×900)
+- ✅ No runtime errors; only the harmless `THREE.Clock` deprecation warning.
+- ✅ **Gallery mode** (G key + button): all chrome fades out, only 3D + minimal caption + exit button remain (VLM-confirmed). Restores from `gallery=1` hash across reload (header opacity 0).
+- ✅ **Guided tour** (N key + button): narration card appears at bottom-center with "Heroica" title, descriptive Spanish body, progress dots 1/4 (VLM-confirmed). Auto-tour drives the camera; card syncs to presets.
+- ✅ **Compare view** (X key + button): side-by-side summer | winter split with VS divider, season labels, gradient tints (VLM-confirmed).
+- ✅ **URL state**: all 15 fields sync; gallery mode + winter season persisted across reload (verified: `#season=winter&gallery=1` → winter scene + hidden chrome).
+- ✅ All Rounds 1–3 features still working.
+- ✅ Lint clean (`bun run lint` → 0 errors, 0 warnings); dev server all 200s.
+- ✅ Preview PNG re-captured & sharp-optimized (1.4 MB → 397 KB).
+
+### Unresolved issues / risks & next-phase recommendations
+1. **`THREE.Clock` deprecation** — drei internal; resolves when drei updates. No action.
+2. **Headless rAF throttling** — the auto-tour/guided-tour motion is imperceptible in the throttled test harness but works in real browsers (confirmed via preset-position snapshot + narration card sync).
+3. **Compare view pointer capture** — the full-screen compare overlay captures pointer events; agent-browser `eval` clicks can get stuck if the overlay is open. Not a real-browser issue (the close button works). Could add a `pointer-events-none` pass-through to the divider band if needed.
+4. **Audio autoplay in shared links** — if `audio=1` is in a shared URL opened fresh, the AudioContext won't resume until the user interacts (browser policy). Gracefully handled.
+5. **Next-round candidate features**:
+   - Serialize full orbit camera (azimuth/elevation/distance) into the URL hash for exact-framing share links.
+   - Add **AccumulativeShadows** or a soft radial gradient blob under the pedestal for stronger grounding on bright winter days.
+   - Add a **"guided tour" voice-over** (TTS via the TTS skill) synced to each preset stop.
+   - Add a **fullscreen-only "gallery mode"** that auto-starts the auto-tour for a kiosk/lobby display.
+   - Add a **bookmarks/presets panel** where users can save custom camera framings + material states.

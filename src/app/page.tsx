@@ -67,6 +67,18 @@ const MobileInfoSheet = dynamic(
   () => import('@/components/origen/MobileInfoSheet').then((m) => m.MobileInfoSheet),
   { ssr: false }
 );
+const GuidedTourCard = dynamic(
+  () => import('@/components/origen/GuidedTourCard').then((m) => m.GuidedTourCard),
+  { ssr: false }
+);
+const CompareView = dynamic(
+  () => import('@/components/origen/CompareView').then((m) => m.CompareView),
+  { ssr: false }
+);
+const GalleryMode = dynamic(
+  () => import('@/components/origen/GalleryMode').then((m) => m.GalleryMode),
+  { ssr: false }
+);
 
 const SUMMER_LANDSCAPE = '/assets/panoramic/origen_panoramic_summer_16X9.png';
 const SUMMER_PORTRAIT = '/assets/panoramic/origen_panoramic_summer_9X16.png';
@@ -80,6 +92,8 @@ export default function OrigenPage() {
   const openConcept = useMaterialStore((s) => s.openConcept);
   const fullscreen = useMaterialStore((s) => s.fullscreen);
   const toggleMobileInfo = useMaterialStore((s) => s.toggleMobileInfo);
+  const galleryMode = useMaterialStore((s) => s.galleryMode);
+  const compareView = useMaterialStore((s) => s.compareView);
   const isMobile = useIsMobile();
   // Wire up global keyboard shortcuts, URL-hash state sync, and the
   // share-link clipboard consumer.
@@ -188,7 +202,7 @@ export default function OrigenPage() {
       </div>
 
       {/* ───────── Header ───────── */}
-      <header className="relative z-30 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+      <header className={`relative z-30 flex items-center justify-between gap-3 px-4 py-3 transition-opacity duration-500 sm:px-6 sm:py-4 ${galleryMode ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
         <motion.div
           className="flex items-center gap-3"
           initial={{ x: -20, opacity: 0 }}
@@ -246,12 +260,12 @@ export default function OrigenPage() {
         </div>
 
         {/* Top-center action toolbar (reset / capture / shortcuts) */}
-        <div className="pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center sm:top-3">
+        <div className={`pointer-events-none absolute inset-x-0 top-2 z-30 flex justify-center transition-opacity duration-500 sm:top-3 ${galleryMode ? 'opacity-0' : 'opacity-100'}`}>
           <ActionToolbar />
         </div>
 
         {/* Control panel — bottom sheet on mobile, right side on desktop */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-[4.75rem] z-30 flex justify-center px-3 sm:inset-x-auto sm:inset-y-0 sm:bottom-auto sm:right-0 sm:items-center sm:justify-end sm:p-4">
+        <div className={`pointer-events-none absolute inset-x-0 bottom-[4.75rem] z-30 flex justify-center px-3 transition-opacity duration-500 sm:inset-x-auto sm:inset-y-0 sm:bottom-auto sm:right-0 sm:items-center sm:justify-end sm:p-4 ${galleryMode ? 'opacity-0' : 'opacity-100'}`}>
           <div className="pointer-events-auto w-full max-w-[24rem] sm:w-auto">
             <AnimatePresence mode="popLayout">
               {panelOpen ? (
@@ -292,7 +306,7 @@ export default function OrigenPage() {
         </div>
 
         {/* Info card — hidden by default on mobile, bottom-left on desktop */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-[4.75rem] z-20 hidden justify-start p-3 sm:flex sm:p-4">
+        <div className={`pointer-events-none absolute inset-x-0 bottom-[4.75rem] z-20 hidden justify-start p-3 transition-opacity duration-500 sm:flex sm:p-4 ${galleryMode ? 'opacity-0' : 'opacity-100'}`}>
           <div className="pointer-events-auto w-full max-w-md">
             <AnimatePresence mode="popLayout">
               {infoOpen ? (
@@ -333,7 +347,7 @@ export default function OrigenPage() {
       </main>
 
       {/* ───────── Sticky footer ───────── */}
-      <footer className="relative z-30 border-t border-stone-700/40 bg-stone-950/70 backdrop-blur-md">
+      <footer className={`relative z-30 border-t border-stone-700/40 bg-stone-950/70 backdrop-blur-md transition-opacity duration-500 ${galleryMode ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/30 to-transparent" />
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-3 sm:flex-row sm:justify-between sm:px-6">
           <div className="flex items-center gap-2 text-[11px] text-stone-400">
@@ -392,6 +406,9 @@ export default function OrigenPage() {
       <ShortcutsOverlay />
       <ConceptOverlay />
       <MobileInfoSheet />
+      <GuidedTourCard />
+      <CompareView />
+      <GalleryMode />
     </div>
   );
 }

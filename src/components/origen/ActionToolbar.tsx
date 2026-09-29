@@ -20,6 +20,9 @@ import {
   Box,
   Square,
   Mountain,
+  GalleryVerticalEnd,
+  Columns2,
+  Play,
 } from 'lucide-react';
 import { useMaterialStore, type CameraPreset } from '@/3d/materialViewer';
 
@@ -39,9 +42,17 @@ export function ActionToolbar() {
   const fullscreen = useMaterialStore((s) => s.fullscreen);
   const applyPreset = useMaterialStore((s) => s.applyCameraPreset);
   const currentPreset = useMaterialStore((s) => s.cameraPreset);
+  const setGuidedTour = useMaterialStore((s) => s.setGuidedTour);
+  const guidedTour = useMaterialStore((s) => s.guidedTour);
+  const setCompareView = useMaterialStore((s) => s.setCompareView);
+  const compareView = useMaterialStore((s) => s.compareView);
+  const setGalleryMode = useMaterialStore((s) => s.setGalleryMode);
+  const galleryMode = useMaterialStore((s) => s.galleryMode);
 
   const btn =
     'flex h-9 w-9 items-center justify-center rounded-full border border-stone-500/40 bg-stone-950/65 text-stone-200 backdrop-blur-md transition hover:bg-stone-800/80 hover:text-amber-200';
+  const btnActive =
+    'flex h-9 w-9 items-center justify-center rounded-full border border-amber-400/60 bg-amber-500/20 text-amber-200 backdrop-blur-md transition hover:bg-amber-500/30';
 
   return (
     <motion.div
@@ -80,6 +91,30 @@ export function ActionToolbar() {
         </button>
         <button onClick={capture} className={btn} title="Capturar PNG (C)" aria-label="Capturar imagen">
           <Camera className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setGuidedTour(!guidedTour)}
+          className={guidedTour ? btnActive : btn}
+          title="Recorrido guiado (N)"
+          aria-label="Recorrido guiado"
+        >
+          <Play className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setCompareView(!compareView)}
+          className={compareView ? btnActive : btn}
+          title="Comparar estaciones (X)"
+          aria-label="Comparar estaciones"
+        >
+          <Columns2 className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setGalleryMode(!galleryMode)}
+          className={galleryMode ? btnActive : btn}
+          title="Modo galería (G)"
+          aria-label="Modo galería"
+        >
+          <GalleryVerticalEnd className="h-4 w-4" />
         </button>
         <button onClick={share} className={btn} title="Copiar enlace (L)" aria-label="Compartir enlace">
           <Share2 className="h-4 w-4" />

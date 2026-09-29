@@ -35,6 +35,26 @@ export const SEASON_ENV_DEFAULTS: Record<Season, number> = {
 /** Cinematic auto-tour cycle order. */
 export const AUTO_TOUR_PRESETS: CameraPreset[] = ['hero', 'front', 'side', 'top'];
 
+/** Per-preset guided-tour narration copy (Spanish, on-brand for ORIGEN). */
+export const PRESET_NARRATION: Record<CameraPreset, { title: string; body: string }> = {
+  hero: {
+    title: 'Heroica',
+    body: 'La vista fundacional. El emblema se alza sobre el pedestal en su composición vertical completa: Tierra a la izquierda, Tiempo a la derecha, Mano como clave central. La luz cálida de la Sierra de Albarracín modela la piedra caliza.',
+  },
+  front: {
+    title: 'Frontal',
+    body: 'De frente, el arco en negativo abre el centro del monolito. La silueta es inmediatamente reconocible: dos pilares que sostienen un dintel, con un vacío que invita a cruzar la mirada.',
+  },
+  side: {
+    title: 'Perfil',
+    body: 'De perfil se revela la profundidad de la talla. El volumen único cobra presencia escultórica: no es una fachada plana, sino un bloque monolítico cuya masa dialoga con el aire de la sierra.',
+  },
+  top: {
+    title: 'Cenital',
+    body: 'Desde lo alto, la planta del símbolo muestra su simetría axial. El dintel y los pilares dibujan una cruz arquitectónica; el pedestal se convierte en el cimiento cósmico del emblema.',
+  },
+};
+
 export interface MaterialState {
   // ── material params ──
   wireframe: boolean;
@@ -50,6 +70,11 @@ export interface MaterialState {
   audioEnabled: boolean;              // ambient wind audio (muted by default)
   // ── cinematic auto-tour ──
   autoTour: boolean;                 // gentle fly-through the presets
+  guidedTour: boolean;               // auto-tour + synchronized narration cards
+  // ── compare-seasons split view ──
+  compareView: boolean;              // summer | winter side by side
+  // ── gallery mode (minimal chrome) ──
+  galleryMode: boolean;
   // ── transient signals (increment to trigger an action) ──
   resetViewSignal: number;
   captureSignal: number;
@@ -80,6 +105,9 @@ export interface MaterialState {
   setShowBackdrop: (v: boolean) => void;
   setAudioEnabled: (v: boolean) => void;
   setAutoTour: (v: boolean) => void;
+  setGuidedTour: (v: boolean) => void;
+  setCompareView: (v: boolean) => void;
+  setGalleryMode: (v: boolean) => void;
   resetView: () => void;
   capture: () => void;
   applyCameraPreset: (p: CameraPreset) => void;
@@ -106,6 +134,9 @@ const DEFAULTS = {
   showBackdrop: true,
   audioEnabled: false,
   autoTour: false,
+  guidedTour: false,
+  compareView: false,
+  galleryMode: false,
 };
 
 export const useMaterialStore = create<MaterialState>((set) => ({
@@ -139,14 +170,25 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   setAudioEnabled: (v) => set({ audioEnabled: v }),
   // Auto-tour implies disabling manual auto-rotate (the tour drives the camera).
   setAutoTour: (v) => set({ autoTour: v, autoRotate: v ? false : useMaterialStore.getState().autoRotate }),
+  // Guided tour = auto-tour + narration cards. Enabling it also enables the
+  // auto-tour; disabling it leaves the auto-tour running for a clean handoff.
+  setGuidedTour: (v) =>
+    set((s) => ({
+      guidedTour: v,
+      autoTour: v ? true : s.autoTour,
+      autoRotate: v ? false : s.autoRotate,
+    })),
+  setCompareView: (v) => set({ compareView: v }),
+  setGalleryMode: (v) => set({ galleryMode: v }),
   resetView: () => set((s) => ({ resetViewSignal: s.resetViewSignal + 1 })),
   capture: () => set((s) => ({ captureSignal: s.captureSignal + 1 })),
   applyCameraPreset: (p) =>
     set((s) => ({
       cameraPreset: p,
       cameraPresetSignal: s.cameraPresetSignal + 1,
-      // Selecting a preset cancels the auto-tour (user took manual control).
+      // Selecting a preset cancels the auto-tour + guided tour (manual control).
       autoTour: false,
+      guidedTour: false,
     })),
   share: () => set((s) => ({ shareSignal: s.shareSignal + 1 })),
   toggleShortcuts: () => set((s) => ({ showShortcuts: !s.showShortcuts })),

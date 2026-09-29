@@ -19,6 +19,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   AUTO_TOUR_PRESETS,
+  useMaterialStore,
   type CameraPreset,
 } from '@/3d/materialViewer';
 
@@ -165,6 +166,13 @@ export function CameraRig({
     c.object.updateProjectionMatrix?.();
     c.update();
     c.enableDamping = wasDamped;
+    // Keep the store's `cameraPreset` in sync with the current segment so the
+    // guided-tour narration card follows the camera. Only set when the segment
+    // changes (avoids a set-state storm on every frame).
+    const currentPreset = AUTO_TOUR_PRESETS[segIdx];
+    if (currentPreset !== useMaterialStore.getState().cameraPreset) {
+      useMaterialStore.setState({ cameraPreset: currentPreset });
+    }
   });
 
   return (

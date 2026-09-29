@@ -9,6 +9,9 @@
  *   S           → toggle season (summer ↔ winter)
  *   A           → toggle auto-rotate
  *   T           → toggle cinematic auto-tour
+ *   N           → toggle guided tour (auto-tour + narration)
+ *   G           → toggle gallery mode (minimal chrome)
+ *   X           → toggle compare-seasons split view
  *   B           → toggle backdrop
  *   M           → toggle ambient audio
  *   R           → reset view
@@ -73,6 +76,15 @@ export function useKeyboardShortcuts() {
         case 't':
           s.setAutoTour(!s.autoTour);
           break;
+        case 'n':
+          s.setGuidedTour(!s.guidedTour);
+          break;
+        case 'g':
+          s.setGalleryMode(!s.galleryMode);
+          break;
+        case 'x':
+          s.setCompareView(!s.compareView);
+          break;
         case 'b':
           s.setShowBackdrop(!s.showBackdrop);
           break;
@@ -109,6 +121,8 @@ export function useKeyboardShortcuts() {
           if (s.showShortcuts) s.toggleShortcuts();
           if (s.showConcept) s.closeConcept();
           if (s.showMobileInfo) s.toggleMobileInfo();
+          if (s.compareView) s.setCompareView(false);
+          if (s.galleryMode) s.setGalleryMode(false);
           if (s.fullscreen) s.setFullscreen(false);
           break;
         default:
