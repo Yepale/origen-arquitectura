@@ -2,15 +2,13 @@
 /**
  * OrigenComposition.tsx — INTERACTIVE drag-to-assemble scene.
  *
- * The three real stone pieces (TIERRA / TIEMPO / MANO) are scattered around
- * the scene. The user DRAGS each piece to its target position. When all three
- * snap, ORIGEN is complete → the landing is revealed.
+ * The three real stone pieces (TIERRA / TIEMPO / MANO) are loaded from the
+ * user's GLB as-is, wrapped in Groups at runtime, scattered, and the user
+ * drags each to its recorded target position. When all three snap, ORIGEN
+ * is complete → the landing is revealed.
  *
- * NO automatic animation. NO pedestal. NO procedural geometry.
- * The geometry is the real GLB — only the groups' positions are animated.
- *
- * Runtime contract: load GLB → resolve ORIGEN_SYMBOL → find TIERRA/TIEMPO/MANO
- *   groups → scatter → user drags → snap to identity → complete.
+ * NO GLB regeneration. NO geometry modification. NO pedestal. NO procedural.
+ * The geometry is the real GLB — only the Groups' positions are animated.
  */
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -34,9 +32,9 @@ function makeSoftShadowTexture(): THREE.Texture {
   c.width = c.height = size;
   const ctx = c.getContext('2d')!;
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, 'rgba(0,0,0,0.7)');
-  g.addColorStop(0.4, 'rgba(0,0,0,0.4)');
-  g.addColorStop(0.75, 'rgba(0,0,0,0.12)');
+  g.addColorStop(0, 'rgba(0,0,0,0.6)');
+  g.addColorStop(0.45, 'rgba(0,0,0,0.3)');
+  g.addColorStop(0.8, 'rgba(0,0,0,0.08)');
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -62,11 +60,10 @@ export function OrigenComposition({
   const season = useMaterialStore((s) => s.season);
   const modelId = useMaterialStore((s) => s.modelId);
 
-  const { root, size, meshes, parts } = useOrigenSymbol(modelId, lod);
+  const { root, size, meshes, parts, targets } = useOrigenSymbol(modelId, lod);
   const inter = useInteraction();
   const { gl } = useThree();
 
-  // Report composition dimensions + mark loaded.
   useEffect(() => {
     onLoaded?.({
       symbolHeight: size.y,
@@ -76,7 +73,6 @@ export function OrigenComposition({
     setLoaded(true);
   }, [size.y, size.x, onLoaded, setLoaded]);
 
-  // Deterministic telemetry.
   const sceneStats = useMemo(() => {
     let triangles = 0;
     let drawCalls = 0;
@@ -97,7 +93,6 @@ export function OrigenComposition({
   const fpsAccum = useRef({ frames: 0, t: 0 });
 
   useFrame((_, delta) => {
-    // Material sync.
     applyHoverState(meshes, inter.hovered);
     syncMaterialState(meshes, {
       wireframe, roughnessOverride, vertexColors, envIntensity, materialPreset,
@@ -124,7 +119,6 @@ export function OrigenComposition({
       setLoaded: () => {}, reset: () => {},
     } as any);
 
-    // Telemetry.
     fpsAccum.current.frames += 1;
     fpsAccum.current.t += delta;
     telAccum.current += delta;
@@ -140,7 +134,6 @@ export function OrigenComposition({
     }
   });
 
-  // Capture signal → download PNG.
   useEffect(() => {
     if (captureSignal === 0) return;
     const url = gl.domElement.toDataURL('image/png');
@@ -150,25 +143,12 @@ export function OrigenComposition({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success('Captura guardada', { description: 'Imagen PNG descargada.' });
+    toast.success('Captura guardada');
   }, [captureSignal, gl]);
-
-  // Pointer event handlers for each part (drag → AssemblyInteraction manages).
-  const partHandlers = useMemo(() => {
-    const handlers: Record<string, (e: any) => void> = {};
-    for (const name of ['TIERRA', 'TIEMPO', 'MANO'] as PartName[]) {
-      handlers[name] = (e: any) => {
-        // The AssemblyInteraction manages the drag; here we just stop propagation
-        // so OrbitControls doesn't rotate while clicking a piece.
-        e.stopPropagation();
-      };
-    }
-    return handlers;
-  }, []);
 
   return (
     <group>
-      {/* Soft ground shadow (NOT a pedestal — just a contact shadow). */}
+      {/* Soft ground shadow (NOT a pedestal). */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <circleGeometry args={[1.2, 64]} />
         <meshBasicMaterial
@@ -179,14 +159,14 @@ export function OrigenComposition({
           color={season === 'summer' ? '#3a2a14' : '#2a3340'}
         />
       </mesh>
-      {/* Directional shadow catcher. */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <circleGeometry args={[1.0, 64]} />
         <shadowMaterial opacity={0.25} />
       </mesh>
       {/* The three real stone pieces — rendered individually so each has its
-          own pointer handler for the drag interaction. AssemblyInteraction
-          scatters + manages drag + snap. */}
+          own pointer handler. Raycast resolution walks up to find the group
+          with userData.piece. */}
+      <primitive object={root} />
       {(['TIERRA', 'TIEMPO', 'MANO'] as PartName[]).map((name) => {
         const obj = parts[name];
         if (!obj) return null;
@@ -196,8 +176,9 @@ export function OrigenComposition({
             object={obj}
             onPointerDown={(e: any) => {
               e.stopPropagation();
-              // Forward to AssemblyInteraction via a custom event.
-              window.dispatchEvent(new CustomEvent('origen-drag-start', { detail: { name, point: e.point } }));
+              window.dispatchEvent(new CustomEvent('origen-drag-start', {
+                detail: { name, object: e.object },
+              }));
             }}
             onPointerOver={(e: any) => { e.stopPropagation(); document.body.style.cursor = 'grab'; }}
             onPointerOut={() => { document.body.style.cursor = 'auto'; }}
@@ -205,8 +186,8 @@ export function OrigenComposition({
         );
       })}
       {/* Interactive drag-to-assemble system. */}
-      <AssemblyInteraction parts={parts as any} meshes={meshes} />
-      {/* Technical edges overlay (additive). */}
+      <AssemblyInteraction parts={parts} targets={targets} meshes={meshes} />
+      {/* Technical edges overlay. */}
       <EdgesOverlay meshes={meshes} pedestalMeshes={[]} symbolWorldY={0} />
     </group>
   );
