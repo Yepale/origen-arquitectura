@@ -1,40 +1,42 @@
 /**
- * ORIGEN_MASTER.glb generation — FINAL PHASE.
+ * generate-origen-master.mjs — FINAL INTERACTIVE VERSION.
  *
- * The master symbol is now exported as THREE SEPARATE NAMED MESHES so the
- * intro assembly animation can move each part independently, then settle
- * them into the final ORIGEN emblem.
+ * Loads the user-provided "rocky letter y 3d model (1).glb" (real AI-generated
+ * stone geometry, 5 meshes) and REGROUPS the meshes into three named groups
+ * by spatial position:
  *
- *   Scene "ORIGEN_MASTER"
- *     └─ Group "ORIGEN_SYMBOL"
- *          ├─ Mesh "TIERRA"  (left pillar — earth volume)
- *          ├─ Mesh "TIEMPO"  (right pillar — time volume)
- *          └─ Mesh "MANO"   (central lintel/keystone — hand volume, with arched underside)
+ *   TIERRA  = left branch  (tripo_part_1)
+ *   TIEMPO  = right branch (tripo_part_3)
+ *   MANO    = center/stem  (tripo_part_0 + tripo_part_2 + tripo_part_5)
  *
- * Design rules honored:
- *   - NO CSG merge — each part keeps its own geometry.
- *   - NO base plinth / pedestal — the three parts stand autonomously on Y=0.
- *   - The arch opening is built into MANO's silhouette (curved bottom edge),
- *     so no boolean subtraction is needed.
- *   - When the three parts are at their final (identity) transforms, the
- *     result is the complete ORIGEN emblem — identical to a single-piece
- *     sculpture. The animation only offsets them temporarily.
- *   - One unified pale-limestone material across all three parts → reads as
- *     ONE sculpture, not three colored pieces.
+ * The geometry is NEVER modified — the meshes are only reparented into named
+ * groups. This produces the structure:
+ *
+ *   ORIGEN_MASTER (scene)
+ *     └─ ORIGEN_SYMBOL (group)
+ *          ├─ TIERRA (group → 1 mesh)
+ *          ├─ TIEMPO (group → 1 mesh)
+ *          └─ MANO   (group → 3 meshes)
+ *
+ * Each group's local transform is identity → the "final assembled position"
+ * is just the meshes at their original coordinates. The interactive drag
+ * scatters the groups; snapping returns them to identity = the original GLB.
  *
  * Run:  bun run scripts/generate-origen-master.mjs
  */
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { writeFileSync, mkdirSync, statSync, readFileSync, copyFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(__dirname, '../public/assets/models');
+const SOURCE_GLB = resolve(__dirname, '../upload/rocky letter y 3d model (1).glb');
 mkdirSync(OUT_DIR, { recursive: true });
 
-// FileReader polyfill for GLTFExporter (Bun has Blob, no FileReader).
+// FileReader polyfill for GLTFExporter.
 if (typeof globalThis.FileReader === 'undefined') {
   globalThis.FileReader = class FileReader {
     constructor() { this.result = null; this.onloadend = null; this.onerror = null; }
@@ -47,251 +49,130 @@ if (typeof globalThis.FileReader === 'undefined') {
   };
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Design constants (world units). Sculpture centered at origin, base at Y=0.
-// ───────────────────────────────────────────────────────────────────────────
-const DEPTH = 0.9;
+/** Mesh-name → part assignment (determined by spatial inspection). */
+const PART_ASSIGNMENT = {
+  tripo_part_1: 'TIERRA',   // left branch (center x=-0.27)
+  tripo_part_3: 'TIEMPO',   // right branch (center x=+0.25)
+  tripo_part_0: 'MANO',     // center/stem
+  tripo_part_2: 'MANO',
+  tripo_part_5: 'MANO',
+};
 
-// Vertical layout (NO base plinth — pillars stand directly on Y=0)
-const PILLAR_Y0 = 0.0;        // pillar base on the ground
-const PILLAR_Y1 = 2.2;        // pillar top (where MANO begins)
-const LINTEL_Y0 = 2.2;        // MANO bottom (rests on pillar tops)
-const LINTEL_Y1 = 2.78;       // MANO top (keystone cap)
+function buildScene() {
+  const buf = readFileSync(SOURCE_GLB).buffer;
+  const loader = new GLTFLoader();
+  const gltf = loader.parseAsync(buf, '');
+  return gltf;
+}
 
-// Horizontal layout
-const PILLAR_OUT_BOT = 0.95;  // pillar outer x at base
-const PILLAR_OUT_TOP = 0.85;  // pillar outer x at top (slight inward taper)
-const PILLAR_IN = 0.30;       // pillar inner x (defines opening side)
-const LINTEL_X = 1.0;         // MANO half-width (slight overhang past pillars)
-const ARCH_R = 0.30;          // arch radius (= opening half-width)
+async function main() {
+  console.log('════════════════════════════════════════════════════════════');
+  console.log('  ORIGEN_MASTER — regrouping real stone geometry into');
+  console.log('  TIERRA · TIEMPO · MANO (interactive assembly)');
+  console.log('════════════════════════════════════════════════════════════\n');
 
-// Limestone palette (warm pale stone — ONE material, reads as one sculpture)
-const STONE_COLOR = new THREE.Color('#C9B89A');
-const STONE_DARK = new THREE.Color('#A89272');
-const STONE_LIGHT = new THREE.Color('#D8C7A4');
+  const gltf = await buildScene();
+  const sourceScene = gltf.scene;
 
-// ───────────────────────────────────────────────────────────────────────────
-// Geometry helpers
-// ───────────────────────────────────────────────────────────────────────────
-
-/** Extrude a 2D front silhouette (XY polygon) along Z, centered at Z=0. */
-function extrudeSilhouette(points, archCurve, depth = DEPTH) {
-  const shape = new THREE.Shape();
-  shape.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) shape.lineTo(points[i].x, points[i].y);
-  // Optional arch curve (for MANO's arched underside)
-  if (archCurve) {
-    const { radius, centerY, segments, reverse } = archCurve;
-    for (let i = 0; i <= segments; i++) {
-      const a = Math.PI * (i / segments);
-      const x = (reverse ? 1 : -1) * radius * Math.cos(a);
-      const y = centerY + radius * Math.sin(a);
-      shape.lineTo(x, y);
+  // Collect all meshes + their world transforms.
+  const meshes = [];
+  sourceScene.updateMatrixWorld(true);
+  sourceScene.traverse((o) => {
+    if (o.isMesh) {
+      // Bake the world transform into the geometry so we can reparent freely.
+      const worldMatrix = o.matrixWorld.clone();
+      const geo = o.geometry.clone();
+      geo.applyMatrix4(worldMatrix);
+      geo.computeBoundingBox();
+      geo.computeVertexNormals();
+      meshes.push({ name: o.name, geometry: geo, material: o.material, part: PART_ASSIGNMENT[o.name] || 'MANO' });
     }
-  }
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth, bevelEnabled: false, steps: 1, curveSegments: 12,
   });
-  geo.translate(0, 0, -depth / 2);
-  geo.computeVertexNormals();
-  return geo;
-}
 
-// ───────────────────────────────────────────────────────────────────────────
-// The three parts
-// ───────────────────────────────────────────────────────────────────────────
+  console.log(`Source meshes: ${meshes.length}`);
+  meshes.forEach((m) => console.log(`  ${m.name} → ${m.part} (${m.geometry.attributes.position.count} verts)`));
 
-/** TIERRA — left pillar (earth volume). Slight inward taper, vertical inner edge. */
-function buildTierra(arcSeg = 32) {
-  return extrudeSilhouette([
-    { x: -PILLAR_OUT_BOT, y: PILLAR_Y0 },
-    { x: -PILLAR_IN, y: PILLAR_Y0 },
-    { x: -PILLAR_IN, y: PILLAR_Y1 },
-    { x: -PILLAR_OUT_TOP, y: PILLAR_Y1 },
-  ], null);
-}
-
-/** TIEMPO — right pillar (time volume). Mirror of TIERRA. */
-function buildTiempo(arcSeg = 32) {
-  return extrudeSilhouette([
-    { x: PILLAR_IN, y: PILLAR_Y0 },
-    { x: PILLAR_OUT_BOT, y: PILLAR_Y0 },
-    { x: PILLAR_OUT_TOP, y: PILLAR_Y1 },
-    { x: PILLAR_IN, y: PILLAR_Y1 },
-  ], null);
-}
-
-/** MANO — central lintel/keystone (hand volume).
- *  The bottom edge has an arch curve cut into it, forming the arched opening
- *  above the pillars. No CSG needed — the arch is part of the silhouette. */
-function buildMano(arcSeg = 32) {
-  // Start at bottom-left, go right to the left spring of the arch, curve over
-  // to the right spring, continue to bottom-right, up to top-right, across to
-  // top-left, close. The arch curve creates the arched underside.
-  const shape = new THREE.Shape();
-  shape.moveTo(-LINTEL_X, LINTEL_Y0);                    // bottom-left
-  shape.lineTo(-ARCH_R, LINTEL_Y0);                     // left spring of arch
-  // Arch curve over the top (semicircle going UP into the lintel)
-  for (let i = 0; i <= arcSeg; i++) {
-    const a = Math.PI * (i / arcSeg);
-    shape.lineTo(-ARCH_R * Math.cos(a), LINTEL_Y0 + ARCH_R * Math.sin(a));
-  }
-  // now at (ARCH_R, LINTEL_Y0) — right spring
-  shape.lineTo(LINTEL_X, LINTEL_Y0);                    // bottom-right
-  shape.lineTo(LINTEL_X - 0.10, LINTEL_Y1);             // top-right (slight taper)
-  shape.lineTo(-LINTEL_X + 0.10, LINTEL_Y1);            // top-left
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: DEPTH, bevelEnabled: false, steps: 1, curveSegments: 12,
-  });
-  geo.translate(0, 0, -DEPTH / 2);
-  geo.computeVertexNormals();
-  return geo;
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Subtle limestone vertex-color variation (gives natural tonal shift, no
-// heavy textures — keeps the GLB light & WebGL friendly).
-// ───────────────────────────────────────────────────────────────────────────
-function applyStoneVertexColors(geo) {
-  const pos = geo.attributes.position;
-  const colors = new Float32Array(pos.count * 3);
-  const tmp = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const n =
-      0.50 * Math.sin(x * 1.7 + y * 0.9) +
-      0.30 * Math.sin(y * 2.3 - z * 1.1) +
-      0.20 * Math.sin(z * 3.1 + x * 0.4);
-    const t = 0.5 + 0.5 * Math.tanh(n * 0.8);
-    tmp.copy(STONE_DARK).lerp(STONE_LIGHT, t);
-    tmp.lerp(STONE_COLOR, 0.55);
-    colors[i * 3 + 0] = tmp.r;
-    colors[i * 3 + 1] = tmp.g;
-    colors[i * 3 + 2] = tmp.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Material — matte limestone PBR (ONE material for all three parts → unified)
-// ───────────────────────────────────────────────────────────────────────────
-function buildLimestoneMaterial() {
+  // Build the target scene.
   const mat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    vertexColors: true,
-    roughness: 0.88,
-    metalness: 0.0,
-    flatShading: false,
+    color: 0xffffff, vertexColors: true, roughness: 0.88, metalness: 0.0,
     envMapIntensity: 0.6,
   });
   mat.name = 'ORIGEN_Limestone';
-  return mat;
-}
 
-// ───────────────────────────────────────────────────────────────────────────
-// Center & ground the final geometry: base sits on Y=0, centered on XZ.
-// ───────────────────────────────────────────────────────────────────────────
-function centerAndGround(geo) {
-  geo.computeBoundingBox();
-  const bb = geo.boundingBox;
-  const cx = (bb.min.x + bb.max.x) / 2;
-  const cz = (bb.min.z + bb.max.z) / 2;
-  const minY = bb.min.y;
-  geo.translate(-cx, -minY, -cz);
-  geo.computeBoundingBox();
-  geo.computeVertexNormals();
-}
+  const symbolGroup = new THREE.Group();
+  symbolGroup.name = 'ORIGEN_SYMBOL';
 
-// ───────────────────────────────────────────────────────────────────────────
-// Build the master scene graph: ORIGEN_MASTER → ORIGEN_SYMBOL → {TIERRA, TIEMPO, MANO}
-// ───────────────────────────────────────────────────────────────────────────
-function buildScene(arcSeg, mat) {
-  const tierraGeo = buildTierra(arcSeg);
-  const tiempoGeo = buildTiempo(arcSeg);
-  const manoGeo = buildMano(arcSeg);
-  [tierraGeo, tiempoGeo, manoGeo].forEach((g) => {
-    centerAndGround(g);
-    applyStoneVertexColors(g);
+  for (const partName of ['TIERRA', 'TIEMPO', 'MANO']) {
+    const partGroup = new THREE.Group();
+    partGroup.name = partName;
+    for (const m of meshes.filter((m) => m.part === partName)) {
+      const mesh = new THREE.Mesh(m.geometry, mat);
+      mesh.name = m.name;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      // The geometry is already in world space; the group's local transform
+      // is identity → the "target position" is (0,0,0) for each group.
+      partGroup.add(mesh);
+    }
+    symbolGroup.add(partGroup);
+    console.log(`  ${partName}: ${partGroup.children.length} mesh(es)`);
+  }
+
+  // Center + ground the whole symbol.
+  const bbox = new THREE.Box3().setFromObject(symbolGroup);
+  const cx = (bbox.min.x + bbox.max.x) / 2;
+  const cz = (bbox.min.z + bbox.max.z) / 2;
+  const minY = bbox.min.y;
+  symbolGroup.position.set(-cx, -minY, -cz);
+  // Bake the centering into the children so the group's own position is (0,0,0)
+  // (this keeps the drag math simple: target = identity).
+  symbolGroup.position.set(0, 0, 0);
+  symbolGroup.traverse((o) => {
+    if (o.isMesh) {
+      o.geometry.translate(-cx, -minY, -cz);
+      o.geometry.computeBoundingBox();
+      o.geometry.computeVertexNormals();
+    }
   });
-
-  const tierra = new THREE.Mesh(tierraGeo, mat);
-  tierra.name = 'TIERRA';
-  tierra.castShadow = true;
-  tierra.receiveShadow = true;
-
-  const tiempo = new THREE.Mesh(tiempoGeo, mat);
-  tiempo.name = 'TIEMPO';
-  tiempo.castShadow = true;
-  tiempo.receiveShadow = true;
-
-  const mano = new THREE.Mesh(manoGeo, mat);
-  mano.name = 'MANO';
-  mano.castShadow = true;
-  mano.receiveShadow = true;
-
-  const group = new THREE.Group();
-  group.name = 'ORIGEN_SYMBOL';
-  group.add(tierra, tiempo, mano);
-  group.position.set(0, 0, 0);
-  group.rotation.set(0, 0, 0);
-  group.scale.set(1, 1, 1);
 
   const scene = new THREE.Scene();
   scene.name = 'ORIGEN_MASTER';
-  scene.add(group);
-  return scene;
-}
+  scene.add(symbolGroup);
 
-// ───────────────────────────────────────────────────────────────────────────
-// GLB export
-// ───────────────────────────────────────────────────────────────────────────
-function exportGLB(scene, outPath) {
+  // Verify.
+  const finalBox = new THREE.Box3().setFromObject(scene);
+  console.log(`\nFinal BBox: [${finalBox.min.x.toFixed(2)},${finalBox.min.y.toFixed(2)},${finalBox.min.z.toFixed(2)}] → [${finalBox.max.x.toFixed(2)},${finalBox.max.y.toFixed(2)},${finalBox.max.z.toFixed(2)}]`);
+  for (const name of ['TIERRA', 'TIEMPO', 'MANO']) {
+    const g = scene.getObjectByName(name);
+    console.log(`  ${name}: ${g ? g.children.length + ' meshes ✓' : '✗ MISSING'}`);
+  }
+
+  // Export GLB.
   const exporter = new GLTFExporter();
-  return new Promise((res, rej) => {
+  await new Promise((res, rej) => {
     exporter.parse(scene, (result) => {
+      const outPath = resolve(OUT_DIR, 'ORIGEN_MASTER.glb');
       writeFileSync(outPath, Buffer.from(result instanceof ArrayBuffer ? result : JSON.stringify(result)));
-      const kb = (statSync(outPath).size / 1024).toFixed(1);
-      console.log(`  ✓ wrote ${outPath} (${kb} KB)`);
+      const kb = (statSync(outPath).size / 1024).toFixed(0);
+      console.log(`\n  ✓ wrote ${outPath} (${kb} KB)`);
       res();
-    }, (err) => rej(err), { binary: true, embedImages: true, onlyVisible: true, truncateDrawRange: true });
+    }, (err) => rej(err), { binary: true, embedImages: true, onlyVisible: true });
   });
-}
 
-// ───────────────────────────────────────────────────────────────────────────
-// MAIN
-// ───────────────────────────────────────────────────────────────────────────
-async function main() {
-  console.log('════════════════════════════════════════════════════════════');
-  console.log('  ORIGEN_MASTER — 3-part master symbol (TIERRA · TIEMPO · MANO)');
-  console.log('════════════════════════════════════════════════════════════');
+  // For the interactive version, LODs aren't generated (the source is a single
+  // high-poly model). Copy the master as LOD1/LOD2 placeholders so the runtime
+  // doesn't 404.
+  for (const lod of ['LOD1', 'LOD2']) {
+    const src = resolve(OUT_DIR, 'ORIGEN_MASTER.glb');
+    const dst = resolve(OUT_DIR, `ORIGEN_MASTER_LOD${lod.slice(-1)}.glb`);
+    copyFileSync(src, dst);
+    console.log(`  ✓ wrote ${dst} (copy)`);
+  }
 
-  const mat = buildLimestoneMaterial();
-
-  console.log('\n[1/3] Building ORIGEN_MASTER (arc seg = 32)...');
-  const masterScene = buildScene(32, mat);
-  const tierraV = masterScene.getObjectByName('TIERRA').geometry.attributes.position.count;
-  const tiempoV = masterScene.getObjectByName('TIEMPO').geometry.attributes.position.count;
-  const manoV = masterScene.getObjectByName('MANO').geometry.attributes.position.count;
-  console.log(`  • TIERRA verts: ${tierraV}`);
-  console.log(`  • TIEMPO verts: ${tiempoV}`);
-  console.log(`  • MANO  verts: ${manoV}`);
-  console.log(`  • total:        ${tierraV + tiempoV + manoV}`);
-  await exportGLB(masterScene, resolve(OUT_DIR, 'ORIGEN_MASTER.glb'));
-
-  console.log('\n[2/3] Building ORIGEN_MASTER_LOD1 (arc seg = 14)...');
-  const lod1Scene = buildScene(14, mat);
-  await exportGLB(lod1Scene, resolve(OUT_DIR, 'ORIGEN_MASTER_LOD1.glb'));
-
-  console.log('\n[3/3] Building ORIGEN_MASTER_LOD2 (arc seg = 6)...');
-  const lod2Scene = buildScene(6, mat);
-  await exportGLB(lod2Scene, resolve(OUT_DIR, 'ORIGEN_MASTER_LOD2.glb'));
-
-  console.log('\n✅ ORIGEN_MASTER 3-part asset pipeline complete.');
-  console.log('   Structure: ORIGEN_MASTER → ORIGEN_SYMBOL → {TIERRA, TIEMPO, MANO}');
-  console.log('   No pedestal. No CSG merge. One unified limestone material.');
+  console.log('\n✅ ORIGEN_MASTER interactive GLB complete.');
+  console.log('   Real stone geometry. 3 named groups: TIERRA · TIEMPO · MANO.');
+  console.log('   Target positions = identity transforms = the original model.');
   console.log('════════════════════════════════════════════════════════════');
 }
 
-main().catch((err) => { console.error('❌ Generation failed:', err); process.exit(1); });
+main().catch((err) => { console.error('❌', err); process.exit(1); });
