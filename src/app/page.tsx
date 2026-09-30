@@ -2,22 +2,13 @@
 /**
  * ORIGEN — landing page (minimal chrome).
  *
- * The 3D symbol is the protagonist. The page has ONLY:
- *   - Header: ORIGEN stone logo + audio toggle + season selector
- *   - Hero: full-viewport 3D canvas (interactive drag-to-assemble)
- *   - Content sections: revealed AFTER the user completes ORIGEN
- *
- * All technical controls (toolbar, panel, telemetry, presets, LOD, wireframe,
- * edges, bookmarks, compare, guided tour, camera buttons, capture/share/
- * fullscreen/shortcuts) are removed from the public UI. The store + keyboard
- * shortcuts remain internally for development.
- *
- * Art direction: stone tones, serif, no SaaS/glassmorphism.
+ * Header: ORIGEN logo (PNG) + season toggle only.
+ * Hero: full-viewport 3D canvas (interactive drag-to-assemble).
+ * Content: revealed AFTER the user completes ORIGEN.
  */
 import dynamic from 'next/dynamic';
-import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Sun, Snowflake } from 'lucide-react';
+import { Sun, Snowflake } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { useKeyboardShortcuts } from '@/3d/useKeyboardShortcuts';
@@ -35,8 +26,6 @@ const OrigenViewer = dynamic(
 export default function OrigenPage() {
   const season = useMaterialStore((s) => s.season);
   const setSeason = useMaterialStore((s) => s.setSeason);
-  const audioEnabled = useMaterialStore((s) => s.audioEnabled);
-  const setAudioEnabled = useMaterialStore((s) => s.setAudioEnabled);
   const assembled = useMaterialStore((s) => s.assembled);
 
   useKeyboardShortcuts();
@@ -47,40 +36,29 @@ export default function OrigenPage() {
     <div className="relative min-h-screen bg-stone-950 text-stone-100">
       <Toaster richColors position="top-center" theme="dark" />
 
-      {/* ───────── Header (minimal: logo + audio + season) ───────── */}
+      {/* ───────── Header: logo PNG + season icon only ───────── */}
       <header className="fixed inset-x-0 top-0 z-40">
-        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/60 to-transparent" />
         <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <motion.img
             src="/assets/origen_logo_stone.png"
             alt="ORIGEN"
-            className="h-7 w-auto object-contain sm:h-8"
+            className="h-6 w-auto object-contain sm:h-7"
             style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
           />
-          {/* Only: audio toggle + season selector */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAudioEnabled(!audioEnabled)}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-600/40 bg-stone-950/40 text-stone-300 transition hover:text-amber-200"
-              aria-label="Audio"
-            >
-              {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </button>
-            <button
-              onClick={() => setSeason(season === 'summer' ? 'winter' : 'summer')}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-mono tracking-wide transition ${
-                season === 'summer'
-                  ? 'border-amber-300/50 bg-amber-500/10 text-amber-100'
-                  : 'border-sky-300/50 bg-sky-500/10 text-sky-100'
-              }`}
-            >
-              {season === 'summer' ? <Sun className="h-3.5 w-3.5" /> : <Snowflake className="h-3.5 w-3.5" />}
-              {season === 'summer' ? 'Verano' : 'Invierno'}
-            </button>
-          </div>
+          {/* ONLY the season toggle — no audio, no other controls */}
+          <button
+            onClick={() => setSeason(season === 'summer' ? 'winter' : 'summer')}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-600/40 bg-stone-950/40 transition hover:border-amber-300/40"
+            aria-label={season === 'summer' ? 'Verano' : 'Invierno'}
+          >
+            {season === 'summer'
+              ? <Sun className="h-4 w-4 text-amber-300" />
+              : <Snowflake className="h-4 w-4 text-sky-300" />}
+          </button>
         </div>
       </header>
 
@@ -90,23 +68,6 @@ export default function OrigenPage() {
         <div className="absolute inset-0">
           <OrigenViewer />
         </div>
-
-        {/* Assembly hint — shown while the user hasn't completed the symbol */}
-        {!assembled && (
-          <motion.div
-            className="absolute inset-x-0 bottom-10 z-30 flex flex-col items-center gap-2 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1 }}
-          >
-            <p className="font-serif text-sm tracking-wide text-stone-300/80">
-              Arrastra las tres piezas para construir ORIGEN
-            </p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500">
-              TIERRA · TIEMPO · MANO
-            </p>
-          </motion.div>
-        )}
       </section>
 
       {/* ───────── Content sections (revealed after assembly) ───────── */}
@@ -124,21 +85,9 @@ export default function OrigenPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Internal overlays (kept for dev, invisible in normal UX) */}
-      <div className="hidden">
-        <ShortcutsOverlayLazy />
-      </div>
     </div>
   );
 }
-
-// Lazy-load ShortcutsOverlay so the component code stays in the bundle
-// for keyboard shortcuts, but the UI is hidden.
-const ShortcutsOverlayLazy = dynamic(
-  () => import('@/components/origen/ShortcutsOverlay').then((m) => m.ShortcutsOverlay),
-  { ssr: false }
-);
 
 /* ─────────────────────────────────────────────────────────────────────── */
 

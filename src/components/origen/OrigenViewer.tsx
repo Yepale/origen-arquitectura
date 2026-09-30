@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import { SceneManager, type Season } from '@/3d/sceneManager';
 import { CameraRig } from '@/3d/cameraRig';
 import { OrigenComposition, type CompositionInfo } from './OrigenComposition';
-import { Atmosphere } from './Atmosphere';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { OrigenLoader } from './OrigenLoader';
 import { AmbientAudio } from './AmbientAudio';
@@ -61,7 +60,6 @@ export function OrigenViewer() {
     >
       <Suspense fallback={<OrigenLoader />}>
         <SceneManager season={season as Season} />
-        <Atmosphere season={season as Season} />
         {info && (
           <CameraRig
             compositionHeight={info.compositionHeight}
