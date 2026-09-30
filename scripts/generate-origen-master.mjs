@@ -94,8 +94,8 @@ async function main() {
 
   // Build the target scene.
   const mat = new THREE.MeshStandardMaterial({
-    color: 0xffffff, vertexColors: true, roughness: 0.88, metalness: 0.0,
-    envMapIntensity: 0.6,
+    color: 0xC9B89A, vertexColors: false, roughness: 0.78, metalness: 0.0,
+    envMapIntensity: 1.0, side: THREE.FrontSide,
   });
   mat.name = 'ORIGEN_Limestone';
 
@@ -105,6 +105,7 @@ async function main() {
   for (const partName of ['TIERRA', 'TIEMPO', 'MANO']) {
     const partGroup = new THREE.Group();
     partGroup.name = partName;
+    partGroup.userData.piece = partName; // for raycast resolution in the runtime
     for (const m of meshes.filter((m) => m.part === partName)) {
       const mesh = new THREE.Mesh(m.geometry, mat);
       mesh.name = m.name;

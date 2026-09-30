@@ -200,7 +200,7 @@ const DEFAULTS = {
   wireframe: false,
   showEdges: false,
   roughnessOverride: null,
-  vertexColors: true,
+  vertexColors: false,
   envIntensity: 0.85,
   lod: 'master' as LOD,
   season: 'summer' as Season,
@@ -413,17 +413,16 @@ export function syncMaterialState(meshes: THREE.Mesh[], s: MaterialState) {
       sm.roughness = s.roughnessOverride ?? preset.roughness;
       sm.metalness = preset.metalness;
       sm.envMapIntensity = s.envIntensity;
-      // Blend the preset color with the vertex colors. When vertexColorBlend=1
-      // (limestone), keep the original vertex colors by setting color=white
-      // (acts as a multiplier). When <1, tint toward the preset color.
-      sm.vertexColors = s.vertexColors;
-      if (s.vertexColors) {
-        // Multiply vertex colors by the preset color (white = no tint for limestone).
+      // Only enable vertexColors if the geometry actually HAS a color attribute.
+      // Enabling vertexColors without a color attribute makes the mesh render BLACK.
+      const hasColorAttr = m.geometry && m.geometry.getAttribute('color');
+      sm.vertexColors = s.vertexColors && hasColorAttr;
+      if (sm.vertexColors) {
         const tint = new THREE.Color(preset.color);
         const blend = preset.vertexColorBlend;
-        // Lerp from white (no tint) to preset color by (1 - blend).
         sm.color.copy(new THREE.Color('#ffffff').lerp(tint, 1 - blend));
       } else {
+        // No vertex colors → use the preset color directly.
         sm.color.copy(new THREE.Color(preset.color));
       }
       sm.needsUpdate = true;

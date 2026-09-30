@@ -28,12 +28,12 @@ const SEASON_PRESETS: Record<Season, {
   summer: {
     sky: '#E8D9B8', ground: '#9C8B6B', sun: '#FFF1D6',
     sunAzimuth: 135, sunElevation: 62,
-    ambient: 0.55, fog: '#D9C8A4', fogNear: 14, fogFar: 36, envIntensity: 0.85,
+    ambient: 0.8, fog: '#D9C8A4', fogNear: 14, fogFar: 36, envIntensity: 1.0,
   },
   winter: {
     sky: '#DDE3EA', ground: '#B7BDC4', sun: '#EAF1F7',
     sunAzimuth: 150, sunElevation: 28,
-    ambient: 0.78, fog: '#D6DCE2', fogNear: 10, fogFar: 30, envIntensity: 0.7,
+    ambient: 1.0, fog: '#D6DCE2', fogNear: 10, fogFar: 30, envIntensity: 0.85,
   },
 };
 
@@ -55,10 +55,11 @@ export function SceneManager({ season, backdropUrl }: SceneConfig) {
     <>
       {/* Soft hemispheric fill (sky/ground bounce) */}
       <hemisphereLight args={[p.sky, p.ground, p.ambient]} />
-      {/* Key directional "sun" with soft shadows */}
+      {/* Key directional "sun" with soft shadows — strong enough to read
+          volume, cracks, edges and relief in the stone. */}
       <directionalLight
         position={[dir.x, dir.y, dir.z]}
-        intensity={season === 'summer' ? 2.4 : 1.4}
+        intensity={season === 'summer' ? 3.5 : 2.2}
         color={p.sun}
         castShadow
         shadow-mapSize-width={2048}

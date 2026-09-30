@@ -74,6 +74,10 @@ export function useOrigenSymbol(id: ModelId = 'origen', lod: LOD = 'master'): Mo
       TIEMPO: root.getObjectByName('TIEMPO') as THREE.Object3D | null,
       MANO: root.getObjectByName('MANO') as THREE.Object3D | null,
     };
+    // Tag each part group with userData.piece for raycast resolution.
+    for (const [name, obj] of Object.entries(parts)) {
+      if (obj) obj.userData.piece = name;
+    }
     return { root, bbox, size, center, meshes, parts };
   }, [scene, entry]);
 }
