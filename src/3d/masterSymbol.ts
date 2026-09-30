@@ -39,11 +39,11 @@ const MESH_TO_PART: Record<string, PartName> = {
   tripo_part_5: 'TIEMPO',
 };
 
-/** Stone material colors — subtle variation, same family (pale limestone). */
+/** Stone material colors — visible variation, same stone family. */
 const PART_COLORS: Record<PartName, string> = {
-  TIERRA: '#C4A882',
-  MANO:   '#C9B89A',
-  TIEMPO: '#BEB0A0',
+  TIERRA: '#B89A6E',   // warm sandy/terracotta-adjacent
+  MANO:   '#D4C8B4',   // pale neutral cream
+  TIEMPO: '#9A9A92',   // cool grey
 };
 
 export interface ModelData {
@@ -61,7 +61,7 @@ function createPartMaterial(part: PartName): THREE.MeshStandardMaterial {
     color: new THREE.Color(PART_COLORS[part]),
     roughness: 0.80,
     metalness: 0.0,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide, // AI-generated models often have inconsistent normals
     envMapIntensity: 1.0,
   });
 }

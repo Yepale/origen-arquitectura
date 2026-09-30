@@ -153,7 +153,7 @@ export function OrigenComposition({
 
   return (
     <group>
-      {/* Soft ground shadow (NOT a pedestal). */}
+      {/* Soft ground shadow — a SIBLING of the pieces, NOT a child. Stays fixed. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <circleGeometry args={[1.2, 64]} />
         <meshBasicMaterial
@@ -168,10 +168,10 @@ export function OrigenComposition({
         <circleGeometry args={[1.0, 64]} />
         <shadowMaterial opacity={0.25} />
       </mesh>
-      {/* The three real stone pieces — rendered individually so each has its
-          own pointer handler. Raycast resolution walks up to find the group
-          with userData.piece. */}
-      <primitive object={root} />
+      {/* The three real stone pieces — rendered ONLY as individual primitives.
+          NEVER render <primitive object={root}> — that would re-parent the
+          pieces back into root and make them move together. Each piece is a
+          standalone Group with its own position, independent of the others. */}
       {(['TIERRA', 'TIEMPO', 'MANO'] as PartName[]).map((name) => {
         const obj = parts[name];
         if (!obj) return null;
