@@ -8,7 +8,7 @@
  */
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Snowflake } from 'lucide-react';
+import { Sun, Snowflake, Volume2, VolumeX } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { useMaterialStore } from '@/3d/materialViewer';
 import { useKeyboardShortcuts } from '@/3d/useKeyboardShortcuts';
@@ -26,6 +26,8 @@ const OrigenViewer = dynamic(
 export default function OrigenPage() {
   const season = useMaterialStore((s) => s.season);
   const setSeason = useMaterialStore((s) => s.setSeason);
+  const audioEnabled = useMaterialStore((s) => s.audioEnabled);
+  const setAudioEnabled = useMaterialStore((s) => s.setAudioEnabled);
   const assembled = useMaterialStore((s) => s.assembled);
 
   useKeyboardShortcuts();
@@ -49,16 +51,25 @@ export default function OrigenPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
           />
-          {/* ONLY the season toggle — no audio, no other controls */}
-          <button
-            onClick={() => setSeason(season === 'summer' ? 'winter' : 'summer')}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-600/40 bg-stone-950/40 transition hover:border-amber-300/40"
-            aria-label={season === 'summer' ? 'Verano' : 'Invierno'}
-          >
-            {season === 'summer'
-              ? <Sun className="h-4 w-4 text-amber-300" />
-              : <Snowflake className="h-4 w-4 text-sky-300" />}
-          </button>
+          {/* Audio toggle + season toggle — both same round style */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAudioEnabled(!audioEnabled)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-600/40 bg-stone-950/40 text-stone-300 transition hover:border-amber-300/40 hover:text-amber-200"
+              aria-label="Audio"
+            >
+              {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => setSeason(season === 'summer' ? 'winter' : 'summer')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-600/40 bg-stone-950/40 transition hover:border-amber-300/40"
+              aria-label={season === 'summer' ? 'Verano' : 'Invierno'}
+            >
+              {season === 'summer'
+                ? <Sun className="h-4 w-4 text-amber-300" />
+                : <Snowflake className="h-4 w-4 text-sky-300" />}
+            </button>
+          </div>
         </div>
       </header>
 
