@@ -226,15 +226,13 @@ export function CameraRig({
         target={[0, targetY, 0]}
         enableDamping
         dampingFactor={0.06}
-        minDistance={3}
-        maxDistance={16}
-        minPolarAngle={THREE.MathUtils.degToRad(20)}
-        maxPolarAngle={THREE.MathUtils.degToRad(82)}
-        // Auto-tour drives the camera directly; disable OrbitControls' own
-        // auto-rotate to avoid a conflict. Otherwise honor the user toggle.
+        minDistance={2.5}
+        maxDistance={8}
+        minPolarAngle={THREE.MathUtils.degToRad(15)}
+        maxPolarAngle={THREE.MathUtils.degToRad(85)}
         autoRotate={autoRotate && !autoTour}
         autoRotateSpeed={autoRotateSpeed}
-        enablePan
+        enablePan={false}
       />
     </>
   );

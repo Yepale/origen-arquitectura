@@ -204,7 +204,7 @@ const DEFAULTS = {
   envIntensity: 0.85,
   lod: 'master' as LOD,
   season: 'summer' as Season,
-  autoRotate: true,
+  autoRotate: false,
   showBackdrop: true,
   audioEnabled: false,
   autoTour: false,
