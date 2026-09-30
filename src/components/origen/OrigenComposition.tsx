@@ -180,8 +180,10 @@ export function OrigenComposition({
             key={name}
             object={obj}
             onPointerDown={(e: any) => {
-              if (e.button !== undefined && e.button !== 0) return; // left button only
+              if (e.button !== undefined && e.button !== 0) return;
               e.stopPropagation();
+              e.nativeEvent?.stopPropagation?.();
+              e.nativeEvent?.preventDefault?.();
               window.dispatchEvent(new CustomEvent('origen-drag-start', {
                 detail: { name, object: e.object },
               }));

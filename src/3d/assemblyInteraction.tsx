@@ -58,7 +58,7 @@ export function AssemblyInteraction({
   targets: Record<PartName, THREE.Vector3>;
   meshes: THREE.Mesh[];
 }) {
-  const { camera, gl, raycaster, pointer } = useThree();
+  const { camera, gl, raycaster, pointer, controls } = useThree() as any;
   const setAssembled = useMaterialStore((s) => s.setAssembled);
   const setAssemblyPhase = useMaterialStore((s) => s.setAssemblyPhase);
 
@@ -105,6 +105,12 @@ export function AssemblyInteraction({
 
       dragPart.current = name;
       setAssemblyPhase('dragging');
+
+      // CRITICAL: disable OrbitControls during drag so the camera doesn't
+      // also orbit when the user clicks+drags a piece. R3F's stopPropagation
+      // only stops R3F's internal propagation, NOT the DOM event that
+      // OrbitControls (drei) listens to on the canvas element.
+      if (controls) controls.enabled = false;
 
       // Drag plane: camera-facing, through the part's current position.
       const camDir = new THREE.Vector3();
@@ -153,6 +159,9 @@ export function AssemblyInteraction({
       }
 
       dragPart.current = null;
+
+      // Re-enable OrbitControls now that the drag is over.
+      if (controls) controls.enabled = true;
 
       // Check completion.
       const allPlaced = (['TIERRA', 'TIEMPO', 'MANO'] as PartName[]).every(
