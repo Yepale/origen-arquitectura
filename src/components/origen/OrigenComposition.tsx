@@ -1,43 +1,31 @@
 'use client';
 /**
- * OrigenComposition.tsx — the assembled 3D scene contents.
+ * OrigenComposition.tsx — INTERACTIVE drag-to-assemble scene.
  *
- * FINAL PHASE:
- *   - NO pedestal. The ORIGEN symbol stands autonomously on Y=0.
- *   - The three named parts (TIERRA / TIEMPO / MANO) are driven by the
- *     AssemblyAnimation: they appear offset, slide to their final positions,
- *     and settle into the complete ORIGEN emblem.
- *   - A subtle radial ground shadow grounds the symbol (NOT a pedestal —
- *     just a soft contact shadow on the ground plane).
- *   - Material sync applies the selected material preset to all parts.
- *   - Telemetry + capture are preserved from prior rounds.
+ * The three real stone pieces (TIERRA / TIEMPO / MANO) are scattered around
+ * the scene. The user DRAGS each piece to its target position. When all three
+ * snap, ORIGEN is complete → the landing is revealed.
+ *
+ * NO automatic animation. NO pedestal. NO procedural geometry.
+ * The geometry is the real GLB — only the groups' positions are animated.
  *
  * Runtime contract: load GLB → resolve ORIGEN_SYMBOL → find TIERRA/TIEMPO/MANO
- *   → never split/rebuild geometry → the animation only offsets transforms
- *   temporarily; the final state = identity transforms = the original GLB.
+ *   groups → scatter → user drags → snap to identity → complete.
  */
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
-import { useOrigenSymbol } from '@/3d/masterSymbol';
+import { useOrigenSymbol, type PartName } from '@/3d/masterSymbol';
 import { applyHoverState, useInteraction } from '@/3d/interaction';
-import {
-  syncMaterialState,
-  setMaterialsTransparent,
-  useMaterialStore,
-} from '@/3d/materialViewer';
-import { AssemblyAnimation, initPartMaterials } from '@/3d/assemblyAnimation';
+import { syncMaterialState, useMaterialStore } from '@/3d/materialViewer';
+import { AssemblyInteraction } from '@/3d/assemblyInteraction';
 import { EdgesOverlay } from './EdgesOverlay';
 
 export interface CompositionInfo {
   symbolHeight: number;
   compositionHeight: number;
   compositionWidth: number;
-}
-
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
 }
 
 function makeSoftShadowTexture(): THREE.Texture {
@@ -77,13 +65,6 @@ export function OrigenComposition({
   const { root, size, meshes, parts } = useOrigenSymbol(modelId, lod);
   const inter = useInteraction();
   const { gl } = useThree();
-  const assembledRef = useRef(false);
-
-  // Make materials transparent so the assembly fade-in works.
-  useEffect(() => {
-    initPartMaterials(meshes);
-    assembledRef.current = false;
-  }, [meshes]);
 
   // Report composition dimensions + mark loaded.
   useEffect(() => {
@@ -95,7 +76,7 @@ export function OrigenComposition({
     setLoaded(true);
   }, [size.y, size.x, onLoaded, setLoaded]);
 
-  // Telemetry (deterministic scene-graph stats).
+  // Deterministic telemetry.
   const sceneStats = useMemo(() => {
     let triangles = 0;
     let drawCalls = 0;
@@ -107,26 +88,19 @@ export function OrigenComposition({
       drawCalls += 1;
       const pos = geo.getAttribute('position');
       const idx = geo.getIndex();
-      const meshTris = idx ? Math.floor(idx.count / 3) : (pos ? Math.floor(pos.count / 3) : 0);
-      triangles += meshTris;
+      triangles += idx ? Math.floor(idx.count / 3) : (pos ? Math.floor(pos.count / 3) : 0);
     });
     return { triangles, drawCalls };
   }, [root]);
 
-  // Telemetry sample (fps + drawCalls + triangles) ~4x/sec.
   const telAccum = useRef(0);
   const fpsAccum = useRef({ frames: 0, t: 0 });
 
   useFrame((_, delta) => {
-    // Material sync (wireframe / roughness / vertex colors / env / preset).
+    // Material sync.
     applyHoverState(meshes, inter.hovered);
     syncMaterialState(meshes, {
-      wireframe,
-      roughnessOverride,
-      vertexColors,
-      envIntensity,
-      materialPreset,
-      // remaining fields unused by syncMaterialState:
+      wireframe, roughnessOverride, vertexColors, envIntensity, materialPreset,
       showEdges: false, lod, season, autoRotate: true, showBackdrop: true,
       audioEnabled: false, autoTour: false, guidedTour: false, compareView: false,
       galleryMode: false, postprocessing: false, kiosk: false, modelId,
@@ -134,13 +108,14 @@ export function OrigenComposition({
       resetViewSignal: 0, captureSignal: 0, cameraPresetSignal: 0, cameraPreset: 'hero',
       shareSignal: 0, showShortcuts: false, showConcept: false, conceptTag: null,
       showMobileInfo: false, fullscreen: false, fps: 0, drawCalls: 0, triangles: 0,
-      loaded: false,
+      loaded: false, assembled: false, assemblyPhase: 'scattered',
       setWireframe: () => {}, setShowEdges: () => {}, setRoughness: () => {},
       setVertexColors: () => {}, setEnvIntensity: () => {}, setLod: () => {},
       setSeason: () => {}, setAutoRotate: () => {}, setShowBackdrop: () => {},
       setAudioEnabled: () => {}, setAutoTour: () => {}, setGuidedTour: () => {},
       setCompareView: () => {}, setGalleryMode: () => {}, setPostprocessing: () => {},
       setMaterialPreset: () => {}, setKiosk: () => {}, setModelId: () => {},
+      setAssembled: () => {}, setAssemblyPhase: () => {},
       saveBookmark: () => {}, deleteBookmark: () => {}, applyBookmark: () => {},
       toggleBookmarks: () => {}, applyOrbit: () => {}, resetView: () => {},
       capture: () => {}, applyCameraPreset: () => {}, share: () => {},
@@ -149,7 +124,7 @@ export function OrigenComposition({
       setLoaded: () => {}, reset: () => {},
     } as any);
 
-    // Telemetry sample.
+    // Telemetry.
     fpsAccum.current.frames += 1;
     fpsAccum.current.t += delta;
     telAccum.current += delta;
@@ -175,49 +150,64 @@ export function OrigenComposition({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success('Captura guardada', {
-      description: 'Imagen PNG descargada del símbolo ORIGEN.',
-    });
+    toast.success('Captura guardada', { description: 'Imagen PNG descargada.' });
   }, [captureSignal, gl]);
+
+  // Pointer event handlers for each part (drag → AssemblyInteraction manages).
+  const partHandlers = useMemo(() => {
+    const handlers: Record<string, (e: any) => void> = {};
+    for (const name of ['TIERRA', 'TIEMPO', 'MANO'] as PartName[]) {
+      handlers[name] = (e: any) => {
+        // The AssemblyInteraction manages the drag; here we just stop propagation
+        // so OrbitControls doesn't rotate while clicking a piece.
+        e.stopPropagation();
+      };
+    }
+    return handlers;
+  }, []);
 
   return (
     <group>
-      {/* Soft radial ground shadow — NOT a pedestal, just a contact shadow
-          that grounds the symbol on the ground plane. */}
+      {/* Soft ground shadow (NOT a pedestal — just a contact shadow). */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
-        <circleGeometry args={[1.6, 64]} />
+        <circleGeometry args={[1.2, 64]} />
         <meshBasicMaterial
           map={useMemo(() => makeSoftShadowTexture(), [])}
           transparent
-          opacity={0.6}
+          opacity={0.5}
           depthWrite={false}
           color={season === 'summer' ? '#3a2a14' : '#2a3340'}
         />
       </mesh>
-      {/* Real-time directional shadow catcher (subtle, on the ground) */}
+      {/* Directional shadow catcher. */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
-        <circleGeometry args={[1.4, 64]} />
-        <shadowMaterial opacity={0.28} />
+        <circleGeometry args={[1.0, 64]} />
+        <shadowMaterial opacity={0.25} />
       </mesh>
-      {/* ORIGEN master symbol — three parts animated by AssemblyAnimation.
-          The root group is at Y=0 (base on the ground). Each part's local
-          transform is animated by AssemblyAnimation; the final state =
-          identity transforms = the original GLB. */}
-      <group
-        onPointerOver={inter.onPointerOver}
-        onPointerOut={inter.onPointerOut}
-        onClick={inter.onClick}
-      >
-        <primitive object={root} castShadow receiveShadow />
-      </group>
-      {/* Technical-inspection edges overlay (purely additive). */}
+      {/* The three real stone pieces — rendered individually so each has its
+          own pointer handler for the drag interaction. AssemblyInteraction
+          scatters + manages drag + snap. */}
+      {(['TIERRA', 'TIEMPO', 'MANO'] as PartName[]).map((name) => {
+        const obj = parts[name];
+        if (!obj) return null;
+        return (
+          <primitive
+            key={name}
+            object={obj}
+            onPointerDown={(e: any) => {
+              e.stopPropagation();
+              // Forward to AssemblyInteraction via a custom event.
+              window.dispatchEvent(new CustomEvent('origen-drag-start', { detail: { name, point: e.point } }));
+            }}
+            onPointerOver={(e: any) => { e.stopPropagation(); document.body.style.cursor = 'grab'; }}
+            onPointerOut={() => { document.body.style.cursor = 'auto'; }}
+          />
+        );
+      })}
+      {/* Interactive drag-to-assemble system. */}
+      <AssemblyInteraction parts={parts as any} meshes={meshes} />
+      {/* Technical edges overlay (additive). */}
       <EdgesOverlay meshes={meshes} pedestalMeshes={[]} symbolWorldY={0} />
-      {/* The assembly animation drives the three parts. */}
-      <AssemblyAnimation
-        parts={parts}
-        meshes={meshes}
-        materialPreset={materialPreset}
-      />
     </group>
   );
 }

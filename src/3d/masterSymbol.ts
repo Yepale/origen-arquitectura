@@ -44,10 +44,11 @@ export interface ModelData {
   center: THREE.Vector3;
   /** All meshes inside the root (for material sync / edges overlay). */
   meshes: THREE.Mesh[];
-  /** The three named parts — TIERRA / TIEMPO / MANO — for the assembly
-   *  animation. Each is a Mesh whose local transform is identity (final
-   *  assembled position). The animation offsets them temporarily. */
-  parts: Record<PartName, THREE.Mesh | null>;
+  /** The three named parts — TIERRA / TIEMPO / MANO — for the interactive
+   *  assembly. Each is a Group (or Mesh) whose local transform is identity
+   *  (the final assembled position). The interaction scatters them; snapping
+   *  returns them to identity = the original GLB. */
+  parts: Record<PartName, THREE.Object3D | null>;
 }
 
 /**
@@ -68,10 +69,10 @@ export function useOrigenSymbol(id: ModelId = 'origen', lod: LOD = 'master'): Mo
     const meshes: THREE.Mesh[] = [];
     root.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
     // Resolve the three named parts for the assembly animation.
-    const parts: Record<PartName, THREE.Mesh | null> = {
-      TIERRA: root.getObjectByName('TIERRA') as THREE.Mesh | null,
-      TIEMPO: root.getObjectByName('TIEMPO') as THREE.Mesh | null,
-      MANO: root.getObjectByName('MANO') as THREE.Mesh | null,
+    const parts: Record<PartName, THREE.Object3D | null> = {
+      TIERRA: root.getObjectByName('TIERRA') as THREE.Object3D | null,
+      TIEMPO: root.getObjectByName('TIEMPO') as THREE.Object3D | null,
+      MANO: root.getObjectByName('MANO') as THREE.Object3D | null,
     };
     return { root, bbox, size, center, meshes, parts };
   }, [scene, entry]);

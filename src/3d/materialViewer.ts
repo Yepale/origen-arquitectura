@@ -129,6 +129,9 @@ export interface MaterialState {
   kiosk: boolean;
   // ── model library selector (ORIGEN symbol / rocky-Y / …) ──
   modelId: ModelId;
+  // ── interactive assembly state ──
+  assembled: boolean;             // true when the user has placed all 3 parts
+  assemblyPhase: 'scattered' | 'dragging' | 'snapped' | 'complete';
   // ── bookmarks (saved view + material snapshots, persisted to localStorage) ──
   bookmarks: OrigenBookmark[];
   showBookmarks: boolean;
@@ -172,6 +175,8 @@ export interface MaterialState {
   setMaterialPreset: (p: MaterialPreset) => void;
   setKiosk: (v: boolean) => void;
   setModelId: (id: ModelId) => void;
+  setAssembled: (v: boolean) => void;
+  setAssemblyPhase: (p: 'scattered' | 'dragging' | 'snapped' | 'complete') => void;
   saveBookmark: (name: string) => void;
   deleteBookmark: (id: string) => void;
   applyBookmark: (id: string) => void;
@@ -210,6 +215,8 @@ const DEFAULTS = {
   materialPreset: 'limestone' as MaterialPreset,
   kiosk: false,
   modelId: 'origen' as ModelId,
+  assembled: false,
+  assemblyPhase: 'scattered' as 'scattered' | 'dragging' | 'snapped' | 'complete',
 };
 
 const BOOKMARKS_KEY = 'origen-bookmarks';
@@ -296,6 +303,8 @@ export const useMaterialStore = create<MaterialState>((set) => ({
   },
   setKiosk: (v) => set({ kiosk: v }),
   setModelId: (id) => set({ modelId: id }),
+  setAssembled: (v) => set({ assembled: v }),
+  setAssemblyPhase: (p) => set({ assemblyPhase: p }),
   // Bookmarks: snapshot the current view + material state into a named entry
   // persisted to localStorage. The orbit coords are read from the global
   // (set by the CameraRig each frame) so the bookmark captures the exact

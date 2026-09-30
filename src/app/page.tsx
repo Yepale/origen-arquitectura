@@ -75,6 +75,7 @@ export default function OrigenPage() {
   const setAudioEnabled = useMaterialStore((s) => s.setAudioEnabled);
   const galleryMode = useMaterialStore((s) => s.galleryMode);
   const isMobile = useIsMobile();
+  const assembled = useMaterialStore((s) => s.assembled);
 
   useKeyboardShortcuts();
   useUrlState();
@@ -243,11 +244,38 @@ export default function OrigenPage() {
         </motion.div>
       </section>
 
-      {/* ───────── Content sections ───────── */}
-      <ConceptSection />
-      <PhilosophySection />
-      <ProjectsSection />
-      <ContactSection />
+      {/* ───────── Content sections (revealed after the user builds ORIGEN) ───────── */}
+      <AnimatePresence>
+        {assembled && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5 }}
+          >
+            <ConceptSection />
+            <PhilosophySection />
+            <ProjectsSection />
+            <ContactSection />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Assembly hint — shown while the user hasn't completed the symbol */}
+      {!assembled && (
+        <motion.div
+          className="absolute inset-x-0 bottom-10 z-30 flex flex-col items-center gap-2 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 1 }}
+        >
+          <p className="font-serif text-sm tracking-wide text-stone-300/80">
+            Arrastra las tres piezas para construir ORIGEN
+          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500">
+            TIERRA · TIEMPO · MANO
+          </p>
+        </motion.div>
+      )}
 
       {/* ───────── Overlays ───────── */}
       <ShortcutsOverlay />
