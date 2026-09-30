@@ -2,62 +2,59 @@
 /**
  * OrigenComposition.tsx — the assembled 3D scene contents.
  *
- * Runtime flow (per ORIGEN production contract):
- *   ORIGEN_MASTER.glb → ORIGEN_SYMBOL (found by name) → measure bbox
- *   → pedestal as spatial reference → place symbol on pedestal top → render.
+ * FINAL PHASE:
+ *   - NO pedestal. The ORIGEN symbol stands autonomously on Y=0.
+ *   - The three named parts (TIERRA / TIEMPO / MANO) are driven by the
+ *     AssemblyAnimation: they appear offset, slide to their final positions,
+ *     and settle into the complete ORIGEN emblem.
+ *   - A subtle radial ground shadow grounds the symbol (NOT a pedestal —
+ *     just a soft contact shadow on the ground plane).
+ *   - Material sync applies the selected material preset to all parts.
+ *   - Telemetry + capture are preserved from prior rounds.
  *
- * The ORIGEN mesh is NEVER split, repositioned internally, or procedurally
- * rebuilt. Only material parameters (wireframe / roughness / vertex colors /
- * env intensity) are synced for inspection, and the LOD GLB URL may be
- * swapped for performance.
- *
- * Adds:
- *   - Entrance animation: the monolith rises from inside the pedestal and
- *     fades in (opacity 0→1, y offset eased) on first load. Achieved by
- *     animating a wrapper group's transform + mesh material opacity —
- *     geometry is untouched.
- *   - Capture signal: when `captureSignal` increments, grab the WebGL canvas
- *     and emit a download + toast.
- *   - Telemetry: reports fps / drawCalls / triangles to the store.
+ * Runtime contract: load GLB → resolve ORIGEN_SYMBOL → find TIERRA/TIEMPO/MANO
+ *   → never split/rebuild geometry → the animation only offsets transforms
+ *   temporarily; the final state = identity transforms = the original GLB.
  */
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useOrigenSymbol } from '@/3d/masterSymbol';
-import { usePedestal } from '@/3d/pedestal';
 import { applyHoverState, useInteraction } from '@/3d/interaction';
-import { syncMaterialState, setMaterialsTransparent, setMaterialsOpacity, useMaterialStore } from '@/3d/materialViewer';
+import {
+  syncMaterialState,
+  setMaterialsTransparent,
+  useMaterialStore,
+} from '@/3d/materialViewer';
+import { AssemblyAnimation, initPartMaterials } from '@/3d/assemblyAnimation';
 import { EdgesOverlay } from './EdgesOverlay';
 
-/** Procedural radial-gradient soft shadow texture (white→transparent). */
+export interface CompositionInfo {
+  symbolHeight: number;
+  compositionHeight: number;
+  compositionWidth: number;
+}
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 function makeSoftShadowTexture(): THREE.Texture {
   const size = 256;
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d')!;
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, 'rgba(0,0,0,0.85)');
-  g.addColorStop(0.35, 'rgba(0,0,0,0.55)');
-  g.addColorStop(0.7, 'rgba(0,0,0,0.18)');
+  g.addColorStop(0, 'rgba(0,0,0,0.7)');
+  g.addColorStop(0.4, 'rgba(0,0,0,0.4)');
+  g.addColorStop(0.75, 'rgba(0,0,0,0.12)');
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
-}
-
-export interface CompositionInfo {
-  symbolHeight: number;
-  compositionHeight: number;
-  compositionWidth: number;
-  pedestalTopY: number;
-}
-
-// Entrance animation easing.
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
 }
 
 export function OrigenComposition({
@@ -70,107 +67,89 @@ export function OrigenComposition({
   const roughnessOverride = useMaterialStore((s) => s.roughnessOverride);
   const vertexColors = useMaterialStore((s) => s.vertexColors);
   const envIntensity = useMaterialStore((s) => s.envIntensity);
+  const materialPreset = useMaterialStore((s) => s.materialPreset);
   const captureSignal = useMaterialStore((s) => s.captureSignal);
   const setTelemetry = useMaterialStore((s) => s.setTelemetry);
   const setLoaded = useMaterialStore((s) => s.setLoaded);
-  const resetViewSignal = useMaterialStore((s) => s.resetViewSignal);
   const season = useMaterialStore((s) => s.season);
   const modelId = useMaterialStore((s) => s.modelId);
 
-  const { root: symbol, size, meshes } = useOrigenSymbol(modelId, lod);
-  const { pedestal, topY, pedestalMeshes } = usePedestal();
+  const { root, size, meshes, parts } = useOrigenSymbol(modelId, lod);
   const inter = useInteraction();
   const { gl } = useThree();
+  const assembledRef = useRef(false);
 
-  // Deterministic scene-graph stats (computed once per LOD swap). These are
-  // stable regardless of frame-loop throttling, so telemetry is always
-  // truthful even in backgrounded/throttled contexts.
-  const sceneStats = useMemo(() => {
-    let triangles = 0;
-    let drawCalls = 0;
-    const collect = (obj: THREE.Object3D) => {
-      obj.traverse((o) => {
-        const mesh = o as THREE.Mesh;
-        if (!mesh.isMesh || !mesh.visible) return;
-        const geo = mesh.geometry;
-        if (!geo) return;
-        drawCalls += 1;
-        const pos = geo.getAttribute('position');
-        const idx = geo.getIndex();
-        const meshTris = idx ? Math.floor(idx.count / 3) : (pos ? Math.floor(pos.count / 3) : 0);
-        triangles += meshTris;
-      });
-    };
-    collect(symbol);
-    collect(pedestal);
-    // +1 draw call for the contact shadow plane (inline mesh).
-    drawCalls += 1;
-    return { triangles, drawCalls };
-  }, [symbol, pedestal]);
-
-  // Wrapper group for the entrance animation (y-offset + opacity).
-  const symbolGroupRef = useRef<THREE.Group>(null);
-  const animStartRef = useRef<number | null>(null);
-
-  // Place pedestal at origin (base already on Y=0), symbol on top.
-  const symbolWorldY = topY;
-
-  // Make materials transparent so we can fade them in.
+  // Make materials transparent so the assembly fade-in works.
   useEffect(() => {
-    setMaterialsTransparent(meshes, true);
+    initPartMaterials(meshes);
+    assembledRef.current = false;
   }, [meshes]);
-
-  // Reset the entrance animation whenever the LOD changes.
-  useEffect(() => {
-    animStartRef.current = null;
-    if (symbolGroupRef.current) {
-      symbolGroupRef.current.position.y = -0.9;
-    }
-    setMaterialsOpacity(meshes, 0);
-  }, [lod, meshes]);
 
   // Report composition dimensions + mark loaded.
   useEffect(() => {
     onLoaded?.({
       symbolHeight: size.y,
-      compositionHeight: topY + size.y,
-      compositionWidth: Math.max(size.x, 2.1),
-      pedestalTopY: topY,
+      compositionHeight: size.y,
+      compositionWidth: size.x,
     });
     setLoaded(true);
-  }, [size.y, size.x, topY, onLoaded, setLoaded]);
+  }, [size.y, size.x, onLoaded, setLoaded]);
 
-  // Telemetry (fps / draw calls / triangles) — sampled ~4x/sec.
+  // Telemetry (deterministic scene-graph stats).
+  const sceneStats = useMemo(() => {
+    let triangles = 0;
+    let drawCalls = 0;
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.visible) return;
+      const geo = mesh.geometry;
+      if (!geo) return;
+      drawCalls += 1;
+      const pos = geo.getAttribute('position');
+      const idx = geo.getIndex();
+      const meshTris = idx ? Math.floor(idx.count / 3) : (pos ? Math.floor(pos.count / 3) : 0);
+      triangles += meshTris;
+    });
+    return { triangles, drawCalls };
+  }, [root]);
+
+  // Telemetry sample (fps + drawCalls + triangles) ~4x/sec.
   const telAccum = useRef(0);
   const fpsAccum = useRef({ frames: 0, t: 0 });
 
   useFrame((_, delta) => {
-    // Entrance animation (1.6s ease-out cubic).
-    if (animStartRef.current === null) animStartRef.current = 0;
-    animStartRef.current += delta;
-    const tRaw = Math.min(animStartRef.current / 1.6, 1);
-    const t = easeOutCubic(tRaw);
-    if (symbolGroupRef.current) {
-      symbolGroupRef.current.position.y = THREE.MathUtils.lerp(-0.9, 0, t);
-    }
-    setMaterialsOpacity(meshes, t);
-
-    // Material sync (wireframe / roughness / vertex colors / env).
+    // Material sync (wireframe / roughness / vertex colors / env / preset).
     applyHoverState(meshes, inter.hovered);
     syncMaterialState(meshes, {
       wireframe,
       roughnessOverride,
       vertexColors,
       envIntensity,
+      materialPreset,
       // remaining fields unused by syncMaterialState:
-      lod, season: 'summer', autoRotate: true, showBackdrop: true,
-      setWireframe: () => {}, setRoughness: () => {}, setVertexColors: () => {},
-      setEnvIntensity: () => {}, setLod: () => {}, setSeason: () => {},
-      setAutoRotate: () => {}, setShowBackdrop: () => {}, reset: () => {},
+      showEdges: false, lod, season, autoRotate: true, showBackdrop: true,
+      audioEnabled: false, autoTour: false, guidedTour: false, compareView: false,
+      galleryMode: false, postprocessing: false, kiosk: false, modelId,
+      bookmarks: [], showBookmarks: false, applyOrbitSignal: 0, pendingOrbit: null,
+      resetViewSignal: 0, captureSignal: 0, cameraPresetSignal: 0, cameraPreset: 'hero',
+      shareSignal: 0, showShortcuts: false, showConcept: false, conceptTag: null,
+      showMobileInfo: false, fullscreen: false, fps: 0, drawCalls: 0, triangles: 0,
+      loaded: false,
+      setWireframe: () => {}, setShowEdges: () => {}, setRoughness: () => {},
+      setVertexColors: () => {}, setEnvIntensity: () => {}, setLod: () => {},
+      setSeason: () => {}, setAutoRotate: () => {}, setShowBackdrop: () => {},
+      setAudioEnabled: () => {}, setAutoTour: () => {}, setGuidedTour: () => {},
+      setCompareView: () => {}, setGalleryMode: () => {}, setPostprocessing: () => {},
+      setMaterialPreset: () => {}, setKiosk: () => {}, setModelId: () => {},
+      saveBookmark: () => {}, deleteBookmark: () => {}, applyBookmark: () => {},
+      toggleBookmarks: () => {}, applyOrbit: () => {}, resetView: () => {},
+      capture: () => {}, applyCameraPreset: () => {}, share: () => {},
+      toggleShortcuts: () => {}, openConcept: () => {}, closeConcept: () => {},
+      toggleMobileInfo: () => {}, setFullscreen: () => {}, setTelemetry: () => {},
+      setLoaded: () => {}, reset: () => {},
     } as any);
 
-    // Telemetry sample. Triangles/drawCalls are deterministic (scene-graph
-    // sums); fps is a rolling counter of actual frames.
+    // Telemetry sample.
     fpsAccum.current.frames += 1;
     fpsAccum.current.t += delta;
     telAccum.current += delta;
@@ -186,9 +165,7 @@ export function OrigenComposition({
     }
   });
 
-  // Capture signal → download PNG. `preserveDrawingBuffer: true` on the
-  // canvas guarantees the buffer is readable; R3F renders every frame so the
-  // buffer is already current by the time the user clicks capture.
+  // Capture signal → download PNG.
   useEffect(() => {
     if (captureSignal === 0) return;
     const url = gl.domElement.toDataURL('image/png');
@@ -203,47 +180,44 @@ export function OrigenComposition({
     });
   }, [captureSignal, gl]);
 
-  // (resetViewSignal is consumed by CameraRig; we read it here only to keep
-  // the dependency graph honest if we later want to react in-scene.)
-  void resetViewSignal;
-
   return (
     <group>
-      {/* Soft radial contact shadow blob — grounds the pedestal on bright
-          winter days where the directional shadow is faint. A procedural
-          radial-gradient texture on a large plane, blended multiply. */}
+      {/* Soft radial ground shadow — NOT a pedestal, just a contact shadow
+          that grounds the symbol on the ground plane. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
-        <circleGeometry args={[3.2, 64]} />
+        <circleGeometry args={[1.6, 64]} />
         <meshBasicMaterial
           map={useMemo(() => makeSoftShadowTexture(), [])}
           transparent
-          opacity={0.55}
+          opacity={0.6}
           depthWrite={false}
           color={season === 'summer' ? '#3a2a14' : '#2a3340'}
         />
       </mesh>
-      {/* Real-time directional shadow catcher (sharper, under the sun) */}
+      {/* Real-time directional shadow catcher (subtle, on the ground) */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
-        <circleGeometry args={[2.4, 64]} />
-        <shadowMaterial opacity={0.32} />
+        <circleGeometry args={[1.4, 64]} />
+        <shadowMaterial opacity={0.28} />
       </mesh>
-      {/* Pedestal — spatial reference only, never merged with ORIGEN */}
-      <primitive object={pedestal} position={[0, 0, 0]} castShadow receiveShadow />
-      {/* ORIGEN master symbol — immutable, rests on pedestal.
-          Wrapped in an animating group for the entrance reveal. */}
+      {/* ORIGEN master symbol — three parts animated by AssemblyAnimation.
+          The root group is at Y=0 (base on the ground). Each part's local
+          transform is animated by AssemblyAnimation; the final state =
+          identity transforms = the original GLB. */}
       <group
-        position={[0, symbolWorldY, 0]}
         onPointerOver={inter.onPointerOver}
         onPointerOut={inter.onPointerOut}
         onClick={inter.onClick}
       >
-        <group ref={symbolGroupRef} position={[0, -0.9, 0]}>
-          <primitive object={symbol} castShadow receiveShadow />
-        </group>
+        <primitive object={root} castShadow receiveShadow />
       </group>
-      {/* Technical-inspection edges overlay (amber on symbol, teal on pedestal).
-          Purely additive — never mutates the ORIGEN geometry. */}
-      <EdgesOverlay meshes={meshes} pedestalMeshes={pedestalMeshes} symbolWorldY={symbolWorldY} />
+      {/* Technical-inspection edges overlay (purely additive). */}
+      <EdgesOverlay meshes={meshes} pedestalMeshes={[]} symbolWorldY={0} />
+      {/* The assembly animation drives the three parts. */}
+      <AssemblyAnimation
+        parts={parts}
+        meshes={meshes}
+        materialPreset={materialPreset}
+      />
     </group>
   );
 }

@@ -1,16 +1,21 @@
 /**
- * masterSymbol.ts — generic model loader.
+ * masterSymbol.ts — loads the 3-part ORIGEN_MASTER.glb.
  *
- * Runtime contract (applies to every model in the library):
- *   GLB → resolve root (named group OR whole scene) → measure bbox
- *     → never split into sub-objects → never reposition pieces
- *     → never use procedural fallback geometry
+ * FINAL-PHASE structure:
+ *   ORIGEN_MASTER (scene)
+ *     └─ ORIGEN_SYMBOL (group)
+ *          ├─ TIERRA  (left pillar — earth volume)
+ *          ├─ TIEMPO  (right pillar — time volume)
+ *          └─ MANO   (central lintel/keystone — hand volume, arched underside)
  *
- * For the ORIGEN master symbol specifically, the contract is stricter:
- *   ORIGEN_MASTER.glb → find ORIGEN_SYMBOL by name → never split into
- *     TIERRA / TIEMPO / MANO. Those are design concepts, not runtime objects.
+ * The three parts are exposed separately so the intro assembly animation
+ * can move each one independently, then settle them into the final ORIGEN.
+ * The final state (identity transforms) = the complete ORIGEN emblem.
  *
- * The GLB is the single immutable source of truth for every model.
+ * No pedestal. The symbol stands autonomously on Y=0.
+ *
+ * Runtime contract: load GLB → resolve ORIGEN_SYMBOL → find the three named
+ * meshes → measure bbox → never split/rebuild geometry. The GLB is immutable.
  */
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
@@ -23,28 +28,31 @@ export const ORIGEN_MASTER_LOD2_URL = '/assets/models/ORIGEN_MASTER_LOD2.glb';
 
 export type LOD = 'master' | 'lod1' | 'lod2';
 
-/** @deprecated use `modelUrl(id, lod)` from models.ts. Kept for backward compat. */
+/** @deprecated use modelUrl(id, lod) from models.ts. */
 export function lodUrl(lod: LOD): string {
   return modelUrl('origen', lod);
 }
 
+export type PartName = 'TIERRA' | 'TIEMPO' | 'MANO';
+
 export interface ModelData {
-  /** The resolved root object (named group OR whole scene). */
+  /** The ORIGEN_SYMBOL group (root of the sculpture). */
   root: THREE.Object3D;
-  /** Local-space bounding box (base at Y=0 for pre-centered models). */
+  /** Local-space bounding box (base at Y=0, centered on XZ). */
   bbox: THREE.Box3;
   size: THREE.Vector3;
   center: THREE.Vector3;
-  /** Meshes inside the root (for material inspection / edges overlay). */
+  /** All meshes inside the root (for material sync / edges overlay). */
   meshes: THREE.Mesh[];
+  /** The three named parts — TIERRA / TIEMPO / MANO — for the assembly
+   *  animation. Each is a Mesh whose local transform is identity (final
+   *  assembled position). The animation offsets them temporarily. */
+  parts: Record<PartName, THREE.Mesh | null>;
 }
 
 /**
- * Load a model from the library and resolve its root object.
+ * Load ORIGEN_MASTER.glb and resolve the three named parts.
  * Never splits / reinterprets / procedurally rebuilds geometry.
- *
- * @param id   model id from the library
- * @param lod  LOD selector (ignored for non-ORIGEN models — they have one LOD)
  */
 export function useOrigenSymbol(id: ModelId = 'origen', lod: LOD = 'master'): ModelData {
   const entry = MODEL_LIBRARY[id];
@@ -59,16 +67,21 @@ export function useOrigenSymbol(id: ModelId = 'origen', lod: LOD = 'master'): Mo
     bbox.getCenter(center);
     const meshes: THREE.Mesh[] = [];
     root.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
-    return { root, bbox, size, center, meshes };
+    // Resolve the three named parts for the assembly animation.
+    const parts: Record<PartName, THREE.Mesh | null> = {
+      TIERRA: root.getObjectByName('TIERRA') as THREE.Mesh | null,
+      TIEMPO: root.getObjectByName('TIEMPO') as THREE.Mesh | null,
+      MANO: root.getObjectByName('MANO') as THREE.Mesh | null,
+    };
+    return { root, bbox, size, center, meshes, parts };
   }, [scene, entry]);
 }
 
 // Backward-compat alias.
 export type OrigenSymbolData = ModelData;
 
-// Preload all ORIGEN LODs so switching is instant.
+// Preload all ORIGEN LODs + the rocky-Y model.
 [ORIGEN_MASTER_URL, ORIGEN_MASTER_LOD1_URL, ORIGEN_MASTER_LOD2_URL].forEach((u) =>
   useGLTF.preload(u)
 );
-// Preload the rocky-Y model too.
 useGLTF.preload('/assets/models/rocky-Y.glb');
