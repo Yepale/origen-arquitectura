@@ -409,22 +409,13 @@ export function syncMaterialState(meshes: THREE.Mesh[], s: MaterialState) {
     const mats = Array.isArray(m.material) ? m.material : [m.material];
     for (const mat of mats) {
       const sm = mat as THREE.MeshStandardMaterial;
+      // Only sync GLOBAL properties — roughness, env, wireframe.
+      // Color is LOCAL per piece (set once at load in masterSymbol.ts) and
+      // must NEVER be overwritten here.
       sm.wireframe = s.wireframe;
       sm.roughness = s.roughnessOverride ?? preset.roughness;
       sm.metalness = preset.metalness;
       sm.envMapIntensity = s.envIntensity;
-      // Only enable vertexColors if the geometry actually HAS a color attribute.
-      // Enabling vertexColors without a color attribute makes the mesh render BLACK.
-      const hasColorAttr = m.geometry && m.geometry.getAttribute('color');
-      sm.vertexColors = s.vertexColors && hasColorAttr;
-      if (sm.vertexColors) {
-        const tint = new THREE.Color(preset.color);
-        const blend = preset.vertexColorBlend;
-        sm.color.copy(new THREE.Color('#ffffff').lerp(tint, 1 - blend));
-      } else {
-        // No vertex colors → use the preset color directly.
-        sm.color.copy(new THREE.Color(preset.color));
-      }
       sm.needsUpdate = true;
     }
   }

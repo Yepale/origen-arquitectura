@@ -65,10 +65,15 @@ export function OrigenComposition({
   const { gl } = useThree();
 
   useEffect(() => {
+    // Report composition dimensions that account for the SCATTER offsets
+    // (not just the assembled bbox) so the camera frames all 3 pieces
+    // in their initial scattered positions.
+    const scatterW = 1.6 * 2;   // TIERRA -1.6 + TIEMPO +1.6
+    const scatterH = size.y + 1.4; // MANO +1.4 upward
     onLoaded?.({
       symbolHeight: size.y,
-      compositionHeight: size.y,
-      compositionWidth: size.x,
+      compositionHeight: Math.max(size.y, scatterH),
+      compositionWidth: Math.max(size.x, scatterW + size.x),
     });
     setLoaded(true);
   }, [size.y, size.x, onLoaded, setLoaded]);
@@ -175,6 +180,7 @@ export function OrigenComposition({
             key={name}
             object={obj}
             onPointerDown={(e: any) => {
+              if (e.button !== undefined && e.button !== 0) return; // left button only
               e.stopPropagation();
               window.dispatchEvent(new CustomEvent('origen-drag-start', {
                 detail: { name, object: e.object },

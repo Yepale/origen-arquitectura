@@ -14,7 +14,7 @@
  * `preserveDrawingBuffer: true` enables reliable canvas→PNG capture.
  */
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import * as THREE from 'three';
 import { SceneManager, type Season } from '@/3d/sceneManager';
 import { CameraRig } from '@/3d/cameraRig';
@@ -36,6 +36,14 @@ export function OrigenViewer() {
   const pendingOrbit = useMaterialStore((s) => s.pendingOrbit);
   const [info, setInfo] = useState<CompositionInfo | null>(null);
   const onLoaded = useCallback((i: CompositionInfo) => setInfo(i), []);
+
+  // Disable the browser context menu on the canvas (right-click = nothing).
+  useEffect(() => {
+    const handler = (e: Event) => e.preventDefault();
+    const canvas = document.querySelector('canvas');
+    if (canvas) canvas.addEventListener('contextmenu', handler);
+    return () => { if (canvas) canvas.removeEventListener('contextmenu', handler); };
+  }, []);
 
   return (
     <Canvas
