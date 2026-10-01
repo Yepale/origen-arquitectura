@@ -1,9 +1,14 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-/** ORIGEN — Master symbol: intact GLB, single transform, no geometry splitting. */
-const MASTER_POSITION=new THREE.Vector3(0,.78,0);
-const MASTER_ROTATION=new THREE.Euler(0,0,0);
+/** ORIGEN — Master symbol: intact GLB, one transform only.
+ * No mesh splitting, no piece reconstruction and no procedural replacement.
+ */
+const MASTER_URL='/models/stone_y.glb';
+const PEDESTAL_URL='/models/pedestal.glb';
+const MASTER_TARGET_HEIGHT=3.35;
+const PEDESTAL_SCALE=1.65;
+const SYMBOL_CLEARANCE=.06;
 
 function markMeshes(root){
   root.traverse(node=>{
@@ -15,16 +20,39 @@ function markMeshes(root){
   });
 }
 
-function centerModel(root,targetHeight=3.35){
+function fitRootToHeight(root,targetHeight){
   root.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(root);
-  const size=box.getSize(new THREE.Vector3());
-  const center=box.getCenter(new THREE.Vector3());
-  const scale=targetHeight/Math.max(size.y,.001);
-  root.scale.setScalar(scale);
-  root.position.set(-center.x*scale,-center.y*scale,-center.z*scale);
+  const height=Math.max(box.max.y-box.min.y,.001);
+  root.scale.multiplyScalar(targetHeight/height);
   root.updateMatrixWorld(true);
-  return root;
+}
+
+function alignSymbolToPedestal(symbolRoot,pedestalRoot){
+  symbolRoot.updateMatrixWorld(true);
+  pedestalRoot.updateMatrixWorld(true);
+
+  const pedestalBox=new THREE.Box3().setFromObject(pedestalRoot);
+  const symbolBox=new THREE.Box3().setFromObject(symbolRoot);
+  const pedestalCenter=pedestalBox.getCenter(new THREE.Vector3());
+  const symbolCenter=symbolBox.getCenter(new THREE.Vector3());
+
+  const symbolWidth=Math.max(symbolBox.max.x-symbolBox.min.x,.001);
+  const pedestalWidth=Math.max(pedestalBox.max.x-pedestalBox.min.x,.001);
+  const widthFit=Math.min(1.0,(pedestalWidth*.72)/symbolWidth);
+  symbolRoot.scale.multiplyScalar(widthFit);
+  symbolRoot.updateMatrixWorld(true);
+
+  const fittedBox=new THREE.Box3().setFromObject(symbolRoot);
+  const fittedCenter=fittedBox.getCenter(new THREE.Vector3());
+  const fittedBottom=fittedBox.min.y;
+
+  symbolRoot.position.x+=pedestalCenter.x-fittedCenter.x;
+  symbolRoot.position.z+=pedestalCenter.z-fittedCenter.z;
+  symbolRoot.position.y+=pedestalBox.max.y+SYMBOL_CLEARANCE-fittedBottom;
+  symbolRoot.updateMatrixWorld(true);
+
+  return {pedestalBox,symbolBox:new THREE.Box3().setFromObject(symbolRoot)};
 }
 
 export function buildStonePieces(scene){
@@ -34,59 +62,62 @@ export function buildStonePieces(scene){
 
   const masterGroup=new THREE.Group();
   masterGroup.name='ORIGEN_MASTER_SYMBOL_GROUP';
-  masterGroup.position.copy(MASTER_POSITION);
-  masterGroup.rotation.copy(MASTER_ROTATION);
   symbolGroup.add(masterGroup);
 
-  // The interaction API keeps three semantic entries, but ALL three reference the
-  // same intact master GLB. Dragging is handled as an interaction state only.
-  const makePiece=name=>({
-    name,
-    group:masterGroup,
-    mesh:null,
-    targetPos:MASTER_POSITION.clone(),
-    targetRot:MASTER_ROTATION.clone(),
-    initialPos:MASTER_POSITION.clone(),
-    initialRot:MASTER_ROTATION.clone(),
-    isLocked:false,
-    isDragging:false,
-    inMagnetZone:false,
-    ghost:null,
-    glowMesh:null,
-    idleFloatOffset:0,
-    master:true
-  });
-  const pieces={tierra:makePiece('tierra'),tiempo:makePiece('tiempo'),mano:makePiece('mano')};
+  const masterState={
+    name:'master',group:masterGroup,mesh:null,targetPos:new THREE.Vector3(),targetRot:new THREE.Euler(),
+    initialPos:new THREE.Vector3(),initialRot:new THREE.Euler(),isLocked:false,isDragging:false,
+    inMagnetZone:false,ghost:null,glowMesh:null,idleFloatOffset:0,master:true
+  };
+
+  // Keep the legacy semantic API for the interaction layer without pretending that
+  // the master GLB has three independently movable visual pieces.
+  const pieces={
+    tierra:{...masterState,name:'tierra'},
+    tiempo:{...masterState,name:'tiempo'},
+    mano:{...masterState,name:'mano'}
+  };
 
   const pedestalGroup=new THREE.Group();
   pedestalGroup.name='pedestal';
   scene.add(pedestalGroup);
 
   const loader=new GLTFLoader();
-  loader.load('/models/pedestal.glb',gltf=>{
-    const pedestal=centerModel(gltf.scene,2.9);
+  loader.load(PEDESTAL_URL,gltf=>{
+    const pedestal=gltf.scene;
     pedestal.name='ORIGEN_REAL_PEDESTAL';
-    pedestal.position.set(0,-1.72,-.65);
-    pedestal.scale.multiplyScalar(1.65);
+    pedestal.scale.setScalar(PEDESTAL_SCALE);
     markMeshes(pedestal);
     pedestalGroup.add(pedestal);
+
+    if(masterGroup.userData.masterLoaded){
+      alignSymbolToPedestal(masterGroup,pedestalGroup);
+    }
   },undefined,error=>console.error('[ORIGEN] pedestal.glb',error));
 
-  loader.load('/models/rocky_y.glb',gltf=>{
-    const master=centerModel(gltf.scene,3.35);
+  loader.load(MASTER_URL,gltf=>{
+    const master=gltf.scene;
     master.name='ORIGEN_MASTER_SYMBOL';
-    master.position.set(0,0,0);
-    master.rotation.set(0,0,0);
     markMeshes(master);
+    fitRootToHeight(master,MASTER_TARGET_HEIGHT);
     masterGroup.add(master);
     masterGroup.userData.realGlb=true;
-    masterGroup.userData.realGlbUrl='/models/rocky_y.glb';
+    masterGroup.userData.realGlbUrl=MASTER_URL;
+    masterGroup.userData.masterLoaded=true;
+    masterState.mesh=master;
     Object.values(pieces).forEach(piece=>{piece.mesh=master;});
-  },undefined,error=>console.error('[ORIGEN] rocky_y.glb',error));
+
+    if(pedestalGroup.children.length){
+      alignSymbolToPedestal(masterGroup,pedestalGroup);
+    }
+  },undefined,error=>console.error('[ORIGEN] stone_y.glb',error));
 
   symbolGroup.userData.pieces=pieces;
   symbolGroup.userData.masterGroup=masterGroup;
-  symbolGroup.userData.targets={master:MASTER_POSITION.clone()};
-  symbolGroup.userData.introInitials={master:{pos:MASTER_POSITION.clone(),rot:MASTER_ROTATION.clone()}};
+  symbolGroup.userData.targets={master:new THREE.Vector3()};
+  symbolGroup.userData.introInitials={master:{pos:new THREE.Vector3(),rot:new THREE.Euler()}};
+  symbolGroup.userData.spatialReference={
+    mode:'pedestal',masterUrl:MASTER_URL,pedestalUrl:PEDESTAL_URL,masterIntact:true
+  };
   return {pieces,pedestalGroup,symbolGroup,masterGroup};
 }
